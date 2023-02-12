@@ -48,7 +48,7 @@ def build_package(package_type, additional_opts):
                                 '--input', '.',
                                 '--main-jar', 'Shutter Encoder.jar',
                                 '--license-file', 'LICENCE.txt',
-                                # '--icon', 'icon.ico',
+                                '--icon', 'icon.ico',
                                 '--app-version', '7.0',
                                 ] + additional_opts,
                                stdout=subprocess.PIPE,
@@ -102,7 +102,7 @@ if not os.path.exists(output_licence_filename):
 # copy icon.ico
 icon_filename = os.path.join(current_dir, "icon.ico")
 output_icon_filename = os.path.join(output_dir, "icon.ico")
-if os.path.exists(icon_filename) and not os.path.exists(output_licence_filename):
+if os.path.exists(icon_filename) and not os.path.exists(output_icon_filename):
     shutil.copyfile(icon_filename, output_icon_filename)
 os.chdir(output_dir)
 system_name = platform.system()
