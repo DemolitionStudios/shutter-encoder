@@ -1,4 +1,4 @@
-# How to build an installer
+# How to build an installable package
 
 ## Prerequisites
 
@@ -73,4 +73,13 @@ jpackage --type pkg \
   --icon icon.ico \ 
   --app-version 7.0 \ 
   --mac-package-identifier "My Shutter Encoder"
+```
+
+## Create installable package using script
+
+**Prerequisites: Python 3**
+```shell
+git clone https://github.com/javacques/shutter-encoder.git
+cd shutter-encoder
+python3 build.py
 ```
