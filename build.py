@@ -1,9 +1,9 @@
+import subprocess
 from urllib.parse import quote
 from urllib.request import urlretrieve
 from tempfile import mkdtemp
-import os.path
+import os
 import shutil
-import subprocess
 import platform
 
 

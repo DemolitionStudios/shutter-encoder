@@ -1,5 +1,6 @@
-/JRE
-/src/build
-/Library
-/.idea
-/src/.idea
+JRE/
+src/build/
+Library/
+.idea/
+out/
+out_jar/
