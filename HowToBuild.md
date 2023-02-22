@@ -25,7 +25,29 @@ Now you can run a fat jar right from the project's root directory using a custom
 JRE\bin\java -jar "Shutter Encoder.jar"
 ```
 
-## Build an executable jar
+## Build an executable jar using script
+
+**Prerequisites: Python 3**
+```shell
+git clone https://github.com/javacques/shutter-encoder.git
+cd shutter-encoder
+python3 build_jar.py
+```
+Run `.jar` using a custom runtime:
+```shell
+JRE/bin/java -jar app.jar
+```
+
+## Build an installable package using script
+
+**Prerequisites: Python 3**
+```shell
+git clone https://github.com/javacques/shutter-encoder.git
+cd shutter-encoder
+python3 build.py
+```
+
+## Manually build an executable jar
 
 Run the following commands from the project's root directory.
 
@@ -53,20 +75,7 @@ JRE/bin/java -jar app.jar
 ```
 Note: it is important to a run jar from the project's root directory, cause resources (such as Languages, for example) are loaded using `ClassLoader#getResource`.
 
-## Create jar using script
-
-**Prerequisites: Python 3**
-```shell
-git clone https://github.com/javacques/shutter-encoder.git
-cd shutter-encoder
-python3 build_jar.py
-```
-Run `.jar` using a custom runtime:
-```shell
-JRE/bin/java -jar app.jar
-```
-
-## Build an installable package using `jpackage`
+## Manually build an installable package using `jpackage`
 
 Create an empty directory (named `out`, for example) and copy `JRE/`, `Languages/`, `Shutter Encoder.jar` and the license file into it.
 We also need to download all the software from [this list](Library/sources.txt). The easiest way is to download the distribution from the official website ([Windows distro](https://www.shutterencoder.com/Shutter%20Encoder%2016.8%20Windows%2064bits.zip)).
@@ -114,13 +123,4 @@ jpackage --type pkg \
   --icon icon.ico \ 
   --app-version 7.0 \ 
   --mac-package-identifier "My Shutter Encoder"
-```
-
-## Create installable package using script
-
-**Prerequisites: Python 3**
-```shell
-git clone https://github.com/javacques/shutter-encoder.git
-cd shutter-encoder
-python3 build.py
 ```

@@ -93,8 +93,7 @@ if not os.path.exists(output_lang_dir):
     shutil.copytree(os.path.join(current_dir, "Languages"), output_lang_dir)
 # copy "Shutter Encoder.jar"
 output_jar_filename = os.path.join(output_dir, "Shutter Encoder.jar")
-if not os.path.exists(output_jar_filename):
-    shutil.copyfile(os.path.join(current_dir, "Shutter Encoder.jar"), output_jar_filename)
+shutil.copyfile(os.path.join(current_dir, "Shutter Encoder.jar"), output_jar_filename)
 # copy LICENCE.txt
 output_licence_filename = os.path.join(output_dir, "LICENCE.txt")
 if not os.path.exists(output_licence_filename):

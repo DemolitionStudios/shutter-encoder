@@ -34,4 +34,4 @@ for filename in glob.glob("lib/*.jar"):
 shutil.copytree(os.path.join(current_dir, "src", "contents"), os.path.join(output_dir, "contents"))
 os.chdir(output_dir)
 build_jar()
-shutil.copyfile("app.jar", os.path.abspath(os.path.join(os.path.dirname(__file__), 'app.jar')))
+shutil.copyfile("app.jar", os.path.abspath(os.path.join(os.path.dirname(__file__), 'Shutter Encoder.jar')))
