@@ -71,7 +71,7 @@ public class ReducedWindow extends JDialog {
 		frame = new JDialog();
 		frame.setContentPane(new MiniWindowBackground());
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);	
-		frame.setTitle("Shutter Encoder");
+		frame.setTitle("Shutter Encoder Hap Edition");
 		frame.setForeground(Color.WHITE);
 		frame.getContentPane().setLayout(null);
 		frame.setSize(290, 94);

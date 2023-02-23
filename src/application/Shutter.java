@@ -556,7 +556,7 @@ public class Shutter {
 					
 		frame.getContentPane().setBackground(new Color(45, 45, 45));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setTitle("Shutter Encoder");
+		frame.setTitle("Shutter Encoder Hap Edition");
 		frame.setBackground(new Color(45, 45, 45));
 		frame.setForeground(Color.WHITE);
 		frame.getContentPane().setLayout(null);
@@ -3008,12 +3008,14 @@ public class Shutter {
 				language.getProperty("functionInsert"),
 				
 				language.getProperty("itemAudioConversion"), "WAV", "AIFF", "FLAC", "MP3", "AAC", "AC3", "OPUS", "OGG", "Dolby Digital Plus", "Dolby TrueHD",
-				
+
+				language.getProperty("itemShowCodecs"), "HAP",
+
 				language.getProperty("itemEditingCodecs"), "DNxHD", "DNxHR", "Apple ProRes", "QT Animation", "GoPro CineForm" ,"Uncompressed",
 				
 				language.getProperty("itemOuputCodecs"), "H.264", "H.265", "VP8", "VP9", "AV1", "OGV", "MPEG-2",		
 				
-				language.getProperty("itemBroadcastCodecs"), "XDCAM HD422", "AVC-Intra 100", "XAVC", "HAP",
+				language.getProperty("itemBroadcastCodecs"), "XDCAM HD422", "AVC-Intra 100", "XAVC",
 				
 				language.getProperty("itemOldCodecs"), "DV PAL", "MJPEG", "Xvid", "WMV", "MPEG-1",
 				
@@ -3086,25 +3088,14 @@ public class Shutter {
 					newList.add(language.getProperty("functionSubtitles"));
 					newList.add(language.getProperty("functionInsert"));
 				}
-				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemAudioConversion")))
+				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemShowCodecs")))
 				{
-					newList.clear();
-
-					newList.add("WAV");
-					newList.add("AIFF");
-					newList.add("FLAC");
-					newList.add("MP3");
-					newList.add("AAC");
-					newList.add("AC3");
-					newList.add("OPUS");
-					newList.add("OGG");
-					newList.add("Dolby Digital Plus");
-					newList.add("Dolby TrueHD");					
+					newList.add("HAP");
 				}
 				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemEditingCodecs")))
 				{
 					newList.clear();
-					
+
 					newList.add("DNxHD");
 					newList.add("DNxHR");
 					newList.add("Apple ProRes");
@@ -3131,7 +3122,6 @@ public class Shutter {
 					newList.add("XDCAM HD422");
 					newList.add("AVC-Intra 100");
 					newList.add("XAVC");
-					newList.add("HAP");
 
 				}
 				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemOldCodecs")))
@@ -3145,6 +3135,21 @@ public class Shutter {
 					newList.add("MPEG-1");
 					newList.add("MPEG-2");
 					
+				}
+				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemAudioConversion")))
+				{
+					newList.clear();
+
+					newList.add("WAV");
+					newList.add("AIFF");
+					newList.add("FLAC");
+					newList.add("MP3");
+					newList.add("AAC");
+					newList.add("AC3");
+					newList.add("OPUS");
+					newList.add("OGG");
+					newList.add("Dolby Digital Plus");
+					newList.add("Dolby TrueHD");
 				}
 				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemArchiveCodecs")))
 				{
@@ -10172,7 +10177,7 @@ public class Shutter {
 			values[i] = String.valueOf(i + 1);
 		}			
 		chunksSize.setModel(new DefaultComboBoxModel<String>(values));
-		chunksSize.setSelectedIndex(3);
+		chunksSize.setSelectedIndex(15);
 		chunksSize.setFont(new Font(freeSansFont, Font.PLAIN, 10));
 		chunksSize.setEditable(false);
 		chunksSize.setSize(40, 16);
@@ -15000,7 +15005,7 @@ public class Shutter {
 				lblFilter.setIcon(new FlatSVGIcon("contents/arrow.svg", 30, 30));
 				
 				DefaultComboBoxModel<Object> model;
-				String types[] = { "Standard", "Alpha", "Q"};
+				String types[] = { "Standard", "Alpha", "Q", "R" };//, "Standard (GDeflate GPU)", "Alpha (GDeflate GPU)", "Q (GDeflate GPU)", "R (GDeflate GPU)", "Standard (Snappy GPU)", "Alpha (Snappy GPU)", "Q (Snappy GPU)", "R (Snappy GPU)" };
 				model = new DefaultComboBoxModel<Object>(types);
 				if (model.getElementAt(0).equals(comboFilter.getModel().getElementAt(0)) == false) {
 					comboFilter.setModel(model);
