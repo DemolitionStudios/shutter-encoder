@@ -41,7 +41,7 @@ def build_mac_package():
 def build_package(package_type, additional_opts):
     process = subprocess.Popen(['jpackage',
                                 '--type', package_type,
-                                '--name', 'Shutter Encoder',
+                                '--name', 'Shutter Encoder Hap Edition',
                                 '--runtime-image', 'JRE',
                                 '--resource-dir', 'Library',
                                 '--resource-dir', 'Languages',
@@ -87,6 +87,9 @@ output_lib_dir = os.path.join(output_dir, "Library")
 if not os.path.exists(output_lib_dir):
     se_package_dir = download_shutter_encoder_package()
     shutil.copytree(os.path.join(se_package_dir, "Library"), output_lib_dir)
+#    if not os.path.exists("Library"):
+#        raise Exception("Library foder doesn't exist")
+#    shutil.copytree("Library", output_lib_dir)
 # copy Languages
 output_lang_dir = os.path.join(output_dir, "Languages")
 if not os.path.exists(output_lang_dir):
