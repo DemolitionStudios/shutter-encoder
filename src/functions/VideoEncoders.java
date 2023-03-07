@@ -1276,13 +1276,16 @@ public class VideoEncoders extends Shutter {
 				break;
 			
 			case "HAP":
-				
-				if (caseChunks.isSelected())
+
+				if (comboFilter.getSelectedItem().toString().contains("GPU"))
 				{
-					return " -c:v hap -chunks " + (chunksSize.getSelectedIndex() + 1);
+					System.out.println("GPU mode");
+					return " -c:v hap -chunks -1";
 				}
+				else if (caseChunks.isSelected())
+					return " -c:v hap -chunks " + (chunksSize.getSelectedIndex() + 1);
 				else
-					return " -c:v hap -chunks 4";
+					return " -c:v hap -chunks 16";
 				
 			case "QT Animation":
 				
@@ -1552,13 +1555,33 @@ public class VideoEncoders extends Shutter {
 
 			case "HAP":
 				
-				if (comboFilter.getSelectedItem().equals("Alpha"))
+				if (comboFilter.getSelectedItem().equals("Alpha") || comboFilter.getSelectedItem().equals("Alpha (Snappy GPU)"))
 				{
 					return " -format hap_alpha";
 				}
-				else if (comboFilter.getSelectedItem().equals("Q"))
+				else if (comboFilter.getSelectedItem().equals("Q") || comboFilter.getSelectedItem().equals("Q (Snappy GPU)"))
 				{
 					return " -format hap_q";
+				}
+				else if (comboFilter.getSelectedItem().equals("R") || comboFilter.getSelectedItem().equals("R (Snappy GPU)"))
+				{
+					return " -format hap_r";
+				}
+				else if (comboFilter.getSelectedItem().equals("Standard (GDeflate GPU)"))
+				{
+					return " -compressor gdeflate";
+				}
+				else if (comboFilter.getSelectedItem().equals("Alpha (GDeflate GPU)"))
+				{
+					return " -format hap_alpha -compressor gdeflate";
+				}
+				else if (comboFilter.getSelectedItem().equals("Q (GDeflate GPU)"))
+				{
+					return " -format hap_q -compressor gdeflate";
+				}
+				else if (comboFilter.getSelectedItem().equals("R (GDeflate GPU)"))
+				{
+					return " -format hap_r -compressor gdeflate";
 				}
 
 				break;
