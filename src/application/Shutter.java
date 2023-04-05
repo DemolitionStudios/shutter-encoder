@@ -992,8 +992,8 @@ public class Shutter {
 			t.start();		
 		}
 			
-		if (Settings.btnDisableUpdate.isSelected() == false)
-			Update.newVersion();			
+		//if (Settings.btnDisableUpdate.isSelected() == false)
+		//	Update.newVersion();
 	}
 	
 	private void topPanel() {
