@@ -49,7 +49,7 @@ def build_package(package_type, additional_opts):
                                 '--main-jar', 'Shutter Encoder.jar',
                                 '--license-file', 'LICENCE.txt',
                                 '--icon', 'icon.ico',
-                                '--app-version', '7.0',
+                                '--app-version', '8.0',
                                 ] + additional_opts,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
