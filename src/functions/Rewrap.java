@@ -98,7 +98,7 @@ public class Rewrap extends Shutter {
 							{
 								frameRate = " -r 30000/1001";
 							}
-							else if (FFPROBE.currentFPS == 23.976f)
+							else if (FFPROBE.currentFPS == 23.98f)
 							{
 								frameRate = " -r 24000/1001";
 							}
@@ -146,6 +146,13 @@ public class Rewrap extends Shutter {
 		            	//Timecode
 						String timecode = Timecode.setTimecode();
 						
+						//DAR
+						String aspect = "";
+						if (caseForcerDAR.isSelected())
+						{
+							aspect = " -aspect " + comboDAR.getSelectedItem().toString();
+						}
+						
 						//File output
 						File fileOut = new File(fileOutputName);				
 						if (fileOut.exists())		
@@ -184,7 +191,7 @@ public class Rewrap extends Shutter {
 								concat = " -noaccurate_seek";
 														
 							//Command
-							String cmd = " -avoid_negative_ts make_zero -c:v copy " + audio + timecode + frameRate + " -map v:0?" + audioMapping + mapSubtitles + metadatas + " -y ";
+							String cmd = " -c:v copy " + audio + timecode + aspect + frameRate + " -map v:0?" + audioMapping + mapSubtitles + metadatas + " -y ";
 							FFMPEG.run(InputAndOutput.inPoint + concat + " -i " + '"' + file.toString() + '"' + subtitles + InputAndOutput.outPoint + cmd + '"'  + fileOut + '"');		
 							
 							do
@@ -195,7 +202,7 @@ public class Rewrap extends Shutter {
 							
 							if (FFMPEG.error)
 							{
-								cmd = " -avoid_negative_ts make_zero -c:v copy" + audio + timecode + " -map 0:v:0?" + audioMapping + metadatas + " -y ";
+								cmd = " -c:v copy" + audio + timecode + " -map 0:v:0?" + audioMapping + metadatas + " -y ";
 								FFMPEG.run(InputAndOutput.inPoint + concat + " -i " + '"' + file.toString() + '"' + InputAndOutput.outPoint + cmd + '"'  + fileOut + '"');		
 								
 								do
@@ -209,7 +216,7 @@ public class Rewrap extends Shutter {
 						if (FFMPEG.saveCode == false && btnStart.getText().equals(Shutter.language.getProperty("btnAddToRender")) == false
 						|| FFMPEG.saveCode && VideoPlayer.comboMode.getSelectedItem().toString().equals(language.getProperty("removeMode")) && caseInAndOut.isSelected())
 						{
-							if (lastActions(fileName, fileOut, labelOutput))
+							if (lastActions(file, fileName, fileOut, labelOutput))
 								break;
 						}
 					
@@ -379,7 +386,7 @@ public class Rewrap extends Shutter {
 		return "";
 	}
 	
-	private static boolean lastActions(String fileName, File fileOut, String output) {
+	private static boolean lastActions(File file, String fileName, File fileOut, String output) {
 		
 		if (FunctionUtils.cleanFunction(fileName, fileOut, output))
 			return true;
@@ -397,7 +404,7 @@ public class Rewrap extends Shutter {
 		//Watch folder
 		if (Shutter.scanIsRunning)
 		{
-			FunctionUtils.moveScannedFiles(fileName);
+			FunctionUtils.moveScannedFiles(file);
 			Rewrap.main();
 			return true;
 		}

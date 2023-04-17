@@ -23,7 +23,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 
 import javax.swing.JTextField;
 
@@ -36,38 +35,72 @@ import library.FFPROBE;
 
 public class Overlay extends Shutter {
 
-	public static String showTimecode(String filterComplex, String file) {
+	public static String showTimecode(String filterComplex, String file, boolean videoPlayerCapture) {
 		
 		if (caseInAndOut.isSelected() && (VideoPlayer.caseAddTimecode.isSelected() || VideoPlayer.caseShowTimecode.isSelected() || VideoPlayer.caseAddText.isSelected() || VideoPlayer.caseShowFileName.isSelected()))
-		{
-			 String tc1 = FFPROBE.timecode1;
-			 String tc2 = FFPROBE.timecode2;
-			 String tc3 = FFPROBE.timecode3;
-			 String tc4 = FFPROBE.timecode4;
-			 
-			if (VideoPlayer.caseAddTimecode.isSelected())
-			{
-				 tc1 = VideoPlayer.TC1.getText();
-				 tc2 = VideoPlayer.TC2.getText();			
-				 tc3 = VideoPlayer.TC3.getText();		    
-				 tc4 = VideoPlayer.TC4.getText();
+		{			
+			String tc1 = FFPROBE.timecode1;
+			String tc2 = FFPROBE.timecode2;
+			String tc3 = FFPROBE.timecode3;
+			String tc4 = FFPROBE.timecode4;
+						 
+			if (VideoPlayer.caseAddTimecode.isSelected() && VideoPlayer.TC1.getText().isEmpty() == false && VideoPlayer.TC2.getText().isEmpty() == false && VideoPlayer.TC3.getText().isEmpty() == false && VideoPlayer.TC4.getText().isEmpty() == false)
+			{			
+				tc1 = VideoPlayer.TC1.getText();
+				tc2 = VideoPlayer.TC2.getText();			
+				tc3 = VideoPlayer.TC3.getText();		    
+				tc4 = VideoPlayer.TC4.getText();			
 			}
-			else if (VideoPlayer.caseShowTimecode.isSelected())
-			{
-				float tcH = Integer.valueOf(FFPROBE.timecode1);
-				float tcM = Integer.valueOf(FFPROBE.timecode2);
-				float tcS = Integer.valueOf(FFPROBE.timecode3);
-				float tcF = Integer.valueOf(FFPROBE.timecode4);
-				
-				tcH = tcH * 3600 * FFPROBE.currentFPS;
-				tcM = tcM * 60 * FFPROBE.currentFPS;
-				tcS = tcS * FFPROBE.currentFPS;
+			else if (VideoPlayer.caseShowTimecode.isSelected() && FFPROBE.timecode1.equals("") == false)
+			{							
+				float tcH = Integer.parseInt(tc1) * 3600 * FFPROBE.currentFPS;
+				float tcM = Integer.parseInt(tc2) * 60 * FFPROBE.currentFPS;
+				float tcS = Integer.parseInt(tc3) * FFPROBE.currentFPS;
 				
 				float timeIn = (Integer.parseInt(VideoPlayer.caseInH.getText()) * 3600 + Integer.parseInt(VideoPlayer.caseInM.getText()) * 60 + Integer.parseInt(VideoPlayer.caseInS.getText())) * FFPROBE.currentFPS + Integer.parseInt(VideoPlayer.caseInF.getText());
-								
-				float offset = timeIn + (tcH + tcM + tcS + tcF);
+
+				float offset = timeIn + tcH + tcM + tcS + Integer.parseInt(tc4);
+
+				if (offset < 0)
+					offset = 0;
 				
-				NumberFormat formatter = new DecimalFormat("00");
+				DecimalFormat formatter = new DecimalFormat("00");	
+				
+				tc1 = formatter.format(Math.floor(offset / FFPROBE.currentFPS / 3600));
+				tc2 = formatter.format(Math.floor(offset / FFPROBE.currentFPS / 60) % 60);
+				tc3 = formatter.format(Math.floor(offset / FFPROBE.currentFPS) % 60);    		
+				tc4 = formatter.format(Math.round(offset % FFPROBE.currentFPS));
+			}	
+			
+			if (videoPlayerCapture)
+			{		
+				if (VideoPlayer.caseShowTimecode.isSelected())
+				{
+					tc1 = FFPROBE.timecode1;
+					tc2 = FFPROBE.timecode2;
+					tc3 = FFPROBE.timecode3;
+					tc4 = FFPROBE.timecode4;
+				}
+				
+				DecimalFormat formatter = new DecimalFormat("00");					
+												
+				float tcH = Integer.parseInt(tc1) * 3600 * FFPROBE.currentFPS;
+				float tcM = Integer.parseInt(tc2) * 60 * FFPROBE.currentFPS;
+				float tcS = Integer.parseInt(tc3) * FFPROBE.currentFPS;
+				
+				float timeIn = (Integer.parseInt(VideoPlayer.caseInH.getText()) * 3600 + Integer.parseInt(VideoPlayer.caseInM.getText()) * 60 + Integer.parseInt(VideoPlayer.caseInS.getText())) * FFPROBE.currentFPS + Integer.parseInt(VideoPlayer.caseInF.getText());
+
+				//NTSC framerate
+				if (VideoPlayer.caseShowTimecode.isSelected())
+				{
+					timeIn = 0;
+				}
+												
+				float currentTime = Timecode.setNonDropFrameTC(VideoPlayer.playerCurrentFrame);
+				float offset = (currentTime - timeIn) + tcH + tcM + tcS + Integer.parseInt(tc4);
+
+				if (offset < 0)
+					offset = 0;
 				
 				tc1 = formatter.format(Math.floor(offset / FFPROBE.currentFPS / 3600));
 				tc2 = formatter.format(Math.floor(offset / FFPROBE.currentFPS / 60) % 60);
@@ -289,8 +322,20 @@ public class Overlay extends Shutter {
 		   	if ((VideoPlayer.caseAddTimecode.isSelected() || VideoPlayer.caseShowTimecode.isSelected()))
 		   	{
 		   		String dropFrame = ":";
-		   		if (caseConform.isSelected() == false && (FFPROBE.currentFPS == 29.97f || FFPROBE.currentFPS == 59.94f) || caseConform.isSelected() && (comboFPS.getSelectedItem().toString().equals("29,97") || comboFPS.getSelectedItem().toString().equals("59,94")))
+		   		if (FFPROBE.dropFrameTC.equals(":") == false && (FFPROBE.currentFPS == 29.97f || FFPROBE.currentFPS == 59.94f))
+		   		{
 		   			dropFrame = ";";
+		   		}
+		        
+		   		if (Shutter.caseConform.isSelected())
+		   		{
+		   			if (Shutter.comboFPS.getSelectedItem().toString().equals("29,97") || Shutter.comboFPS.getSelectedItem().toString().equals("59,94"))
+		   			{
+		   				dropFrame = ";";
+		   			}
+		   			else 
+		   				dropFrame = ":";
+		   		}
 		   			
 		   		if (filterComplex != "") filterComplex += ",";
 		   		
@@ -343,8 +388,10 @@ public class Overlay extends Shutter {
 						s[0] = String.valueOf(Math.round(Integer.parseInt(s[0]) * value));
 						s[1] = String.valueOf(Math.round(Integer.parseInt(s[1]) * value));
 					}					
-					else					
+					else if (comboResolution.getSelectedItem().toString().contains("x"))				
+					{
 						s = comboResolution.getSelectedItem().toString().split("x");
+					}
 					
 					int iw = Integer.parseInt(i[0]);
 					int ih = Integer.parseInt(i[1]);

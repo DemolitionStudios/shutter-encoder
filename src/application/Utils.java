@@ -80,6 +80,7 @@ import library.TSMUXER;
 import library.XPDF;
 import library.YOUTUBEDL;
 import settings.Colorimetry;
+import settings.FunctionUtils;
 
 public class Utils extends Shutter {
 	
@@ -179,7 +180,7 @@ public class Utils extends Shutter {
 					{						
 						for (String local : Locale.getISOLanguages())
 						{												
-							String language = new Locale(local).getDisplayLanguage();
+							String language = Locale.of(local).getDisplayLanguage();
 
 							//With Country
 							if (getLanguage.contains("("))
@@ -190,7 +191,7 @@ public class Utils extends Shutter {
 								{
 									for (String countries : Locale.getISOCountries())
 									{				
-										String country = new Locale(local, countries).getDisplayCountry();
+										String country = Locale.of(local, countries).getDisplayCountry();
 																				
 										if (country.equals(c[1]))
 										{															
@@ -240,27 +241,27 @@ public class Utils extends Shutter {
 				input = defaultLanguage(pathToLanguages);
 			}
 			
-			if (getLanguage.contains(new Locale("zh").getDisplayLanguage()))
+			if (getLanguage.contains(Locale.of("zh").getDisplayLanguage()))
 			{				
 				Shutter.magnetoFont = "Noto Sans SC Medium";
 				Shutter.montserratFont = "Noto Sans SC Medium";
 				Shutter.freeSansFont = "Noto Sans SC Medium";
 			}
-			else if (getLanguage.contains(new Locale("ja").getDisplayLanguage())
-			|| getLanguage.equals(new Locale("ru").getDisplayLanguage())
-			|| getLanguage.equals(new Locale("uk").getDisplayLanguage())) //use system default font
+			else if (getLanguage.contains(Locale.of("ja").getDisplayLanguage())
+			|| getLanguage.equals(Locale.of("ru").getDisplayLanguage())
+			|| getLanguage.equals(Locale.of("uk").getDisplayLanguage())) //use system default font
 			{
 				Shutter.magnetoFont = "";
 				Shutter.montserratFont = "";
 				Shutter.freeSansFont = "";
 			}
-			else if (getLanguage.contains(new Locale("vi").getDisplayLanguage())
-			|| getLanguage.contains(new Locale("pl").getDisplayLanguage())) //use system default font
+			else if (getLanguage.contains(Locale.of("vi").getDisplayLanguage())
+			|| getLanguage.contains(Locale.of("pl").getDisplayLanguage())) //use system default font
 			{
 				Shutter.magnetoFont = "";
 				Shutter.montserratFont = "FreeSans";
 			}
-			else if (getLanguage.equals(new Locale("sl").getDisplayLanguage()))
+			else if (getLanguage.equals(Locale.of("sl").getDisplayLanguage()))
 			{
 				Shutter.montserratFont = "FreeSans";
 			}
@@ -283,11 +284,11 @@ public class Utils extends Shutter {
 
 		if (new File(loadLanguage).exists())
 		{
-			getLanguage = new Locale(System.getProperty("user.language")).getDisplayLanguage();
+			getLanguage = Locale.of(System.getProperty("user.language")).getDisplayLanguage();
 			
 			//Multiple countries
 			if (System.getProperty("user.language").equals("pt") || System.getProperty("user.language").equals("zh"))
-				getLanguage = new Locale(System.getProperty("user.language")).getDisplayLanguage() + " (" + new Locale(System.getProperty("user.language"), System.getProperty("user.country")).getDisplayCountry() + ")";
+				getLanguage = Locale.of(System.getProperty("user.language")).getDisplayLanguage() + " (" + Locale.of(System.getProperty("user.language"), System.getProperty("user.country")).getDisplayCountry() + ")";
 						
 			return new FileInputStream(loadLanguage);
 		}
@@ -378,6 +379,7 @@ public class Utils extends Shutter {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	public static File UNCPath(File file) {		
 		
 	frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -448,13 +450,13 @@ public class Utils extends Shutter {
 		if (list == null)
 			return;
 
-		boolean addAll = false;
-		
 		for (File f : list) {
+			
 			if (f.isDirectory()) 
 			{
 				findFiles(f.getAbsolutePath());
-			} else
+			}
+			else
 			{
 				int s = f.getAbsoluteFile().toString().lastIndexOf('.');
 				String ext = f.getAbsoluteFile().toString().substring(s);
@@ -469,19 +471,15 @@ public class Utils extends Shutter {
 					}
 					else if (f.isHidden() == false && f.getName().contains("."))
 					{			
-						if (addAll == false && (f.getAbsoluteFile().toString().contains("\"") || f.getAbsoluteFile().toString().contains("\'") || f.getName().contains("/") || f.getName().contains("\\")))
+						if (f.getAbsoluteFile().toString().contains("\"") || f.getAbsoluteFile().toString().contains("\'") || f.getName().contains("/") || f.getName().contains("\\"))
 						{
-							Object[] options = { Shutter.language.getProperty("btnAdd") + " " + Shutter.language.getProperty("setAll").toLowerCase(), Shutter.language.getProperty("btnAdd"), Shutter.language.getProperty("btnNext"), Shutter.language.getProperty("btnCancel") };
-							
-							int q = JOptionPane.showOptionDialog(Shutter.frame, f.getAbsoluteFile().toString() + System.lineSeparator() + Shutter.language.getProperty("invalidCharacter"), Shutter.language.getProperty("import"),
-									JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
-						
-							if (q == 0) //Add All
-								addAll = true;
-							else if (q == 2) //Next
-								continue;
-							else if (q == 3) //Cancel
-								break;
+							if (FunctionUtils.allowsInvalidCharacters == false) 
+							{
+								JOptionPane.showConfirmDialog(Shutter.frame, f.getAbsoluteFile().toString() + System.lineSeparator() + Shutter.language.getProperty("invalidCharacter"), Shutter.language.getProperty("import"),
+								JOptionPane.PLAIN_MESSAGE, JOptionPane.WARNING_MESSAGE);
+								
+								FunctionUtils.allowsInvalidCharacters = true;
+							}
 						}
 						
 						if (Settings.btnExclude.isSelected())
@@ -510,9 +508,33 @@ public class Utils extends Shutter {
 				}
 			}
 		}
-		lblFiles.setText(filesNumber());
-	}
 		
+		lblFiles.setText(filesNumber());;
+	}
+	
+	public static void findDirectories(String path) {
+	
+		File root = new File(path);
+		File[] list = root.listFiles();
+
+		if (list == null)
+			return;
+
+		for (File f : list) {
+			
+			if (f.isDirectory()) 
+			{
+				Shutter.liste.addElement(f.getAbsoluteFile().toString());
+				Shutter.addToList.setVisible(false);
+				Shutter.lblFiles.setText(Utils.filesNumber());
+				
+				findDirectories(f.getAbsolutePath());
+			}
+		}	
+		
+		lblFiles.setText(filesNumber());;
+	}
+	
 	@SuppressWarnings({"rawtypes"})
 	public static void saveSettings(boolean update) {
 		
@@ -2085,16 +2107,7 @@ public class Utils extends Shutter {
 				}
 			}
 			
-			changeFunction(false);							
-			
-			if (lblPad.getText().equals(language.getProperty("lblPad")))
-			{
-				lblPad.setText(language.getProperty("lblPad"));
-			}
-			else
-			{
-				lblPad.setText(language.getProperty("lblCrop"));
-			}
+			changeFunction(false);						
 				
 		} catch (Exception e) {
 			

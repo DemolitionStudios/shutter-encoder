@@ -453,6 +453,7 @@ public class VideoEncoders extends Shutter {
 								case "AVC-Intra 100":
 								case "DNxHD":
 								case "XDCAM HD422":
+								case "DVD" : //Needed 16:9 aspect ratio
 									
 									if (FFPROBE.imageResolution.equals("1440x1080"))
 									{
@@ -536,7 +537,7 @@ public class VideoEncoders extends Shutter {
 						filterComplex = Overlay.setWatermark(filterComplex);
 						
 		            	//Timecode
-						filterComplex = Overlay.showTimecode(filterComplex, fileName.replace(extension, ""));
+						filterComplex = Overlay.showTimecode(filterComplex, fileName.replace(extension, ""), false);
 				        
 				    	//Crop
 				        filterComplex = Image.setCrop(filterComplex);
@@ -550,6 +551,7 @@ public class VideoEncoders extends Shutter {
 								case "AVC-Intra 100":
 								case "DNxHD":
 								case "XDCAM HD422":
+								case "DVD" : //Needed 16:9 aspect ratio
 									
 									if (FFPROBE.imageResolution.equals("1440x1080"))
 									{
@@ -984,7 +986,7 @@ public class VideoEncoders extends Shutter {
 						|| FFMPEG.saveCode == false && Settings.btnSetBab.isSelected()
 						|| FFMPEG.saveCode == false && VideoPlayer.comboMode.getSelectedItem().toString().equals(language.getProperty("removeMode")) && caseInAndOut.isSelected())
 						{
-							if (lastActions(fileName, fileOut, labelOutput))
+							if (lastActions(file, fileName, fileOut, labelOutput))
 								break;
 						}
 					} catch (InterruptedException | IOException e) {
@@ -1080,7 +1082,11 @@ public class VideoEncoders extends Shutter {
 					else if (comboAccel.getSelectedItem().equals("Intel Quick Sync"))
 					{
 						return " -c:v av1_qsv";	
-					}				
+					}	
+					else if (comboAccel.getSelectedItem().equals("AMD AMF Encoder"))
+					{
+						return " -c:v av1_amf";
+					}
 				}
 		    	else
 		        	return " -c:v libsvtav1";
@@ -1095,7 +1101,12 @@ public class VideoEncoders extends Shutter {
 				
 			case "DVD":
 				
-				return " -aspect 16:9 -target pal-dvd";
+				if (FFPROBE.currentFPS == 25.0f)
+				{
+					return " -aspect 16:9 -target pal-dvd -s 720x576";
+				}
+				else
+					return " -aspect 16:9 -target ntsc-dvd -s 720x480";
 				
 			case "DV PAL":
 				
@@ -1106,7 +1117,7 @@ public class VideoEncoders extends Shutter {
 				if (caseAccel.isSelected())
 				{
 					if (comboAccel.getSelectedItem().equals("Nvidia NVENC"))
-						return " -c:v h264_nvenc";	
+						return " -c:v h264_nvenc -b_ref_mode 0";	
 					else if (comboAccel.getSelectedItem().equals("Intel Quick Sync"))
 						return " -c:v h264_qsv";	
 					else if (comboAccel.getSelectedItem().equals("AMD AMF Encoder"))
@@ -1130,7 +1141,7 @@ public class VideoEncoders extends Shutter {
 				if (caseAccel.isSelected())
 				{
 					if (comboAccel.getSelectedItem().equals("Nvidia NVENC"))
-						return " -c:v hevc_nvenc";	
+						return " -c:v hevc_nvenc -b_ref_mode 0";	
 					else if (comboAccel.getSelectedItem().equals("Intel Quick Sync"))
 						return " -c:v hevc_qsv";	
 					else if (comboAccel.getSelectedItem().equals("AMD AMF Encoder"))
@@ -1509,8 +1520,14 @@ public class VideoEncoders extends Shutter {
 						
 		    		return " -crf " + FunctionUtils.setVideoBitrate() + gpu;          
 		        }
+				else if (lblVBR.getText().equals("CBR") && caseAccel.isSelected())
+		        {
+		        	return " -b:v " + FunctionUtils.setVideoBitrate() + "k -rc cbr";
+		        }
 		        else
+		        {
 		        	return " -b:v " + FunctionUtils.setVideoBitrate() + "k";
+		        }
 				
 			case "VP8":
 			case "VP9":
@@ -1609,15 +1626,21 @@ public class VideoEncoders extends Shutter {
 		String line;
 		while ((line = oldXML.readLine()) != null)
 		{
-			if (line.contains("path"))
+			if (FFPROBE.currentFPS != 25.0f && line.contains("pal"))
+			{
+				writer.write(line.replace("pal", "ntsc").replace("720x576", "720x480") + System.lineSeparator());
+			}
+			else if (line.contains("path"))
+			{
 				writer.write(line.replace("path", MPEGFile) + System.lineSeparator());
+			}
 			else					
 				writer.write(line + System.lineSeparator());
 		}
 		
-			reader.close();
-			oldXML.close();
-			writer.close();		
+		reader.close();
+		oldXML.close();
+		writer.close();		
 			
 			if (System.getProperty("os.name").contains("Mac") || System.getProperty("os.name").contains("Linux"))
 				DVDAUTHOR.run("-o " + '"' + dvdFolder.toString() + "/" + '"' + " -x " + '"' + dvdFolder.toString() + "/dvd.xml" + '"');
@@ -1665,7 +1688,7 @@ public class VideoEncoders extends Shutter {
             } while (TSMUXER.isRunning);
 }
 	
-	private static boolean lastActions(String fileName, File fileOut, String output) {
+	private static boolean lastActions(File file, String fileName, File fileOut, String output) {
 		
 		if (FunctionUtils.cleanFunction(fileName, fileOut, output))
 			return true;
@@ -1687,8 +1710,8 @@ public class VideoEncoders extends Shutter {
 		//Watch folder
 		if (Shutter.scanIsRunning)
 		{
-			FunctionUtils.moveScannedFiles(fileName);
-			VideoEncoders.main(true);
+			FunctionUtils.moveScannedFiles(file);
+			VideoEncoders.main(true);			
 			return true;
 		}
 		

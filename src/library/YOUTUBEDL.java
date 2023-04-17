@@ -82,7 +82,7 @@ public static String format = "";
 						PathToYOUTUBEDL = Shutter.class.getProtectionDomain().getCodeSource().getLocation().getPath();
 						PathToYOUTUBEDL = PathToYOUTUBEDL.substring(0,PathToYOUTUBEDL.length()-1);
 						
-						String youtubedl = "yt-dlp";
+						String youtubedl = "yt-dlp_linux";
 						if (System.getProperty("os.name").contains("Mac"))
 						{
 							String macVersion = System.getProperty("os.version").replace(".", "");
@@ -98,7 +98,7 @@ public static String format = "";
 							youtubedl = "yt-dlp_macos";
 							if (arch.equals("x86_64") && Integer.parseInt(macVersion) < 1015)
 							{
-								youtubedl = "youtube-dl";
+								youtubedl = "yt-dlp_macos_x86";
 							}
 						}
 
@@ -201,7 +201,7 @@ public static String format = "";
 						PathToYOUTUBEDL = Shutter.class.getProtectionDomain().getCodeSource().getLocation().getPath();
 						PathToYOUTUBEDL = PathToYOUTUBEDL.substring(0,PathToYOUTUBEDL.length()-1);
 						
-						String youtubedl = "yt-dlp";
+						String youtubedl = "yt-dlp_linux";
 						if (System.getProperty("os.name").contains("Mac"))
 						{
 							String macVersion = System.getProperty("os.version").replace(".", "");
@@ -217,7 +217,7 @@ public static String format = "";
 							youtubedl = "yt-dlp_macos";
 							if (arch.equals("x86_64") && Integer.parseInt(macVersion) < 1015)
 							{
-								youtubedl = "youtube-dl";
+								youtubedl = "yt-dlp_macos_x86";
 							}
 						}
 
@@ -290,7 +290,7 @@ public static String format = "";
 						PathToYOUTUBEDL = Shutter.class.getProtectionDomain().getCodeSource().getLocation().getPath();
 						PathToYOUTUBEDL = PathToYOUTUBEDL.substring(0,PathToYOUTUBEDL.length()-1);
 						
-						String youtubedl = "yt-dlp";
+						String youtubedl = "yt-dlp_linux";
 						if (System.getProperty("os.name").contains("Mac"))
 						{
 							String macVersion = System.getProperty("os.version").replace(".", "");
@@ -306,7 +306,7 @@ public static String format = "";
 							youtubedl = "yt-dlp_macos";
 							if (arch.equals("x86_64") && Integer.parseInt(macVersion) < 1015)
 							{
-								youtubedl = "youtube-dl";
+								youtubedl = "yt-dlp_macos_x86";
 							}
 						}
 

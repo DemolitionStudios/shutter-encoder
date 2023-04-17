@@ -403,7 +403,7 @@ public static StringBuilder errorLog = new StringBuilder();
 	}
 	
 	public static void toSDL(boolean isVideoPlayer) {
-		
+				
 		if (fileList.getSelectedIndices().length > 1 && isVideoPlayer == false)
 		{
 			String input = "";
@@ -426,7 +426,7 @@ public static StringBuilder errorLog = new StringBuilder();
 			FFMPEG.toFFPLAY(input + " -filter_complex " + '"' + filter + hstack + '"' + " -c:v rawvideo -map "
 					+ '"' + "[out]" + '"' + " -map a? -f nut pipe:play |");
 		} else {
-			
+						
 			//File
 			File inputFile = null;
 			
@@ -559,7 +559,7 @@ public static StringBuilder errorLog = new StringBuilder();
 			}
 			
 			String cmd = " -filter_complex " + '"' + videoOutput + audioOutput	+ " -c:v rawvideo -map a? -f nut pipe:play |";
-
+			
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			
 			if (isVideoPlayer)
@@ -1034,7 +1034,7 @@ public static StringBuilder errorLog = new StringBuilder();
 		runProcess.start();
 	}
 
-	public static void checkGPUCapabilities(String file) {
+	public static void checkGPUCapabilities(String file, boolean force) {
 		
 		frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		
@@ -1045,7 +1045,8 @@ public static StringBuilder errorLog = new StringBuilder();
 		//Check is GPU can decode				
 		if (System.getProperty("os.name").contains("Windows")
 		&& Settings.comboGPU.getSelectedItem().toString().equals(Shutter.language.getProperty("aucun")) == false
-		&& Settings.comboGPUFilter.getSelectedItem().toString().equals(Shutter.language.getProperty("aucun")) == false)
+		&& Settings.comboGPUFilter.getSelectedItem().toString().equals(Shutter.language.getProperty("aucun")) == false
+		|| System.getProperty("os.name").contains("Windows") && force)
 		{
 			String vcodec = "";
 			if (FFPROBE.videoCodec != null && FFPROBE.totalLength > 40)
@@ -1085,10 +1086,10 @@ public static StringBuilder errorLog = new StringBuilder();
 						bitDepth = "p010";
 					}	
 					
-					if (comboResolution.getSelectedItem().toString().equals(language.getProperty("source")) == false)
+					if (comboResolution.getSelectedItem().toString().equals(language.getProperty("source")) == false || force)
 					{						
 						//Check for Nvidia or Intel GPU
-						if (Settings.comboGPU.getSelectedItem().toString().equals("auto"))
+						if (Settings.comboGPU.getSelectedItem().toString().equals("auto") || force)
 						{
 							//Cuda
 							FFMPEG.gpuFilter(" -hwaccel cuda -hwaccel_output_format cuda -i " + '"' + file + '"' + " -vf scale_cuda=640:360,hwdownload,format=" + bitDepth + " -an -t 1 -f null -" + '"');
@@ -1486,6 +1487,7 @@ public static StringBuilder errorLog = new StringBuilder();
 		return true;
 	}
 	
+	@SuppressWarnings("deprecation")
 	public static void suspendProcess()
 	{
 		try {
@@ -1506,6 +1508,7 @@ public static StringBuilder errorLog = new StringBuilder();
 		} catch (SecurityException | IllegalArgumentException | IOException e1) {	}
 	}
 	
+	@SuppressWarnings("deprecation")
 	public static void resumeProcess()
 	{
 		try {	
@@ -1570,8 +1573,10 @@ public static StringBuilder errorLog = new StringBuilder();
 				dureeTotale = (int) (dureeTotale * (FFPROBE.currentFPS / newFPS));
 			}
 						
-			if (comboFonctions.getSelectedItem().equals(Shutter.language.getProperty("functionPicture")))
+			if (comboFonctions.getSelectedItem().equals(Shutter.language.getProperty("functionPicture")) && comboFilter.getSelectedItem().toString().equals(".gif") == false && Shutter.caseCreateSequence.isSelected() == false)
+			{
 				dureeTotale = 1;
+			}
 			
 			if ((comboFonctions.getSelectedItem().toString().equals("H.264")
 			|| comboFonctions.getSelectedItem().toString().equals("H.265")
@@ -1617,7 +1622,7 @@ public static StringBuilder errorLog = new StringBuilder();
     			progressBar1.setStringPainted(false);
     		else
     			progressBar1.setStringPainted(true);
-    		    		
+    		    		    		
 			if (pass2)
 			{
 				progressBar1.setValue((dureeTotale / 2) + getTimeToSeconds(ffmpegTime));

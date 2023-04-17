@@ -161,7 +161,7 @@ public class Picture extends Shutter {
 						filterComplex = Overlay.setWatermark(filterComplex);
 						
 		            	//Timecode
-						filterComplex = Overlay.showTimecode(filterComplex, fileName.replace(extension, ""));			         
+						filterComplex = Overlay.showTimecode(filterComplex, fileName.replace(extension, ""), videoPlayerCapture);			         
 	
 						//Crop
 				        filterComplex = Image.setCrop(filterComplex);
@@ -172,6 +172,14 @@ public class Picture extends Shutter {
 				        	filterComplex = Image.setScale(filterComplex, false);
 				        	filterComplex = Image.setPad(filterComplex, false);		
 			        	}
+				        
+				        //GIF Paletteuse²
+						if (comboFilter.getSelectedItem().toString().equals(".gif"))
+						{
+							if (filterComplex != "") filterComplex += ",";
+							
+							filterComplex += "split[a][b];[a]palettegen[p];[b][p]paletteuse,fps=" + comboImageOption.getSelectedItem().toString().replace(" " + Shutter.language.getProperty("fps"), "");
+						}
 						
 						//filterComplex
 						filterComplex = FunctionUtils.setFilterComplex(filterComplex, false, "");		
@@ -184,7 +192,7 @@ public class Picture extends Shutter {
 						
 						if (videoPlayerCapture && VideoPlayer.waveformContainer.isVisible())
 						{
-							InputAndOutput.inPoint = " -ss " + VideoPlayer.slider.getValue() * VideoPlayer.inputFramerateMS + "ms ";
+							InputAndOutput.inPoint = " -ss " + (long) (VideoPlayer.playerCurrentFrame * VideoPlayer.inputFramerateMS) + "ms";
 						}
 						
 						//Flags
@@ -283,7 +291,7 @@ public class Picture extends Shutter {
 						
 						if (FFMPEG.saveCode == false && btnStart.getText().equals(Shutter.language.getProperty("btnAddToRender")) == false)
 						{
-							if (lastActions(fileName, extension, fileOut, labelOutput) || videoPlayerCapture)
+							if (lastActions(file, fileName, extension, fileOut, labelOutput) || videoPlayerCapture)
 								break;
 						}
 						
@@ -340,11 +348,15 @@ public class Picture extends Shutter {
 		}
 		else if (comboFilter.getSelectedItem().toString().equals(".webp"))
 		{
-			return " -quality " + comboImageQuality.getSelectedItem().toString().replace("%", "");
+			return " -quality " + comboImageOption.getSelectedItem().toString().replace("%", "");
 		}
 		else if (comboFilter.getSelectedItem().toString().equals(".avif"))
 		{
-			return " -crf " +  Math.round((float) 63 - (float) ((float) ((float) Integer.valueOf(comboImageQuality.getSelectedItem().toString().replace("%", "")) * 63) / 100));
+			return " -crf " +  Math.round((float) 63 - (float) ((float) ((float) Integer.valueOf(comboImageOption.getSelectedItem().toString().replace("%", "")) * 63) / 100));
+		}
+		else if (comboFilter.getSelectedItem().toString().equals(".tif"))
+		{
+			return " -compression_algo " + comboImageOption.getSelectedItem().toString();
 		}
 		else
 		{
@@ -375,11 +387,15 @@ public class Picture extends Shutter {
 		{
 			return " -r 1";
 		}
+		else if (comboFilter.getSelectedItem().toString().equals(".gif"))
+		{
+			return "";
+		}
 		else
 			return " -vframes 1";
 	}
 	
-	private static boolean lastActions(String fileName, String extension, File fileOut, String output) {		
+	private static boolean lastActions(File file, String fileName, String extension, File fileOut, String output) {		
 		
 		if (FunctionUtils.cleanFunction(fileName, fileOut, output))
 			return true;
@@ -394,7 +410,7 @@ public class Picture extends Shutter {
 		//Watch folder
 		if (Shutter.scanIsRunning)
 		{
-			FunctionUtils.moveScannedFiles(fileName);				
+			FunctionUtils.moveScannedFiles(file);				
 			Picture.main(true, false);
 			return true;
 		}

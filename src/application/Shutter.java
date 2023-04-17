@@ -84,6 +84,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -168,7 +169,7 @@ public class Shutter {
 	/*
 	 * Initialisation
 	 */
-	public static String actualVersion = "16.8";
+	public static String actualVersion = "17.0";
 	public static String getLanguage = "";
 	public static String arch = "x86_64";
 	public static String pathToFont = "JRE/lib/fonts/Montserrat.ttf";
@@ -267,7 +268,7 @@ public class Shutter {
 	protected static JLabel iconPresets;
 	protected static JComboBox<String> comboResolution;
 	protected static JLabel lblImageQuality;
-	protected static JComboBox<String> comboImageQuality;
+	protected static JComboBox<String> comboImageOption;
 	protected static JCheckBox caseRotate;
 	protected static JComboBox<String> comboRotate;
 	protected static JCheckBox caseMiror;
@@ -433,6 +434,7 @@ public class Shutter {
 	protected static JTextField textF;
 	protected static JComboBox<String> debitVideo;
 	protected static JComboBox<String> debitAudio;
+	protected static JLabel lblAudioKbs;
 	protected static String audioValues[] = new String[] { "1536","1344","1152","960","768","640","512","448","384","320","256","192","160","128","96","64","32"};
 	protected static JPanel h264lines;
 	protected static JTextField bitrateSize;
@@ -550,6 +552,8 @@ public class Shutter {
 		new Shutter();
 		
 		Utils.textFieldBackground();
+		
+		ImageIO.setUseCache(false); //IMPORTANT use RAM instead of HDD cache
 	}
 
 	public Shutter() {
@@ -940,7 +944,8 @@ public class Shutter {
 					
 					if (ext.equals(".enc") == false && droppedFiles.isHidden() == false && droppedFiles.getName().contains("."))
 						liste.addElement(droppedFiles.toString());
-				} else
+				} 
+				else
 					Utils.findFiles(droppedFiles.toString());
 			}
 			
@@ -1306,7 +1311,7 @@ public class Shutter {
 		lblV.setFont(new Font(freeSansFont, Font.PLAIN, 12));
 		lblV.setText("v" + actualVersion);
 		lblV.setVisible(false);
-		lblV.setBounds(panelShutter.getX() + panelShutter.getWidth(), 6, lblV.getPreferredSize().width, 16);
+		lblV.setBounds(panelShutter.getX() + panelShutter.getWidth(), 6, lblV.getPreferredSize().width + 4, 16);
 		topPanel.add(lblV);
 
 		lblV.addMouseListener(new MouseListener() {
@@ -1551,11 +1556,21 @@ public class Shutter {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				
+				if (FFPROBE.isRunning)
+				{
+					do {
+						try {
+							Thread.sleep(10);
+						} catch (InterruptedException e1) {}
+					} while (FFPROBE.isRunning);
+				}
+				
 				FFMPEG.toSDL(false);
 			}
 		});
 
 		menuOpenFolder.addActionListener(new ActionListener() {
+			@SuppressWarnings("deprecation")
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (System.getProperty("os.name").contains("Mac")) 
@@ -1878,6 +1893,7 @@ public class Shutter {
 		});
 		
 		arborescence.addActionListener(new ActionListener() {
+			@SuppressWarnings("deprecation")
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				File source = null;
@@ -2125,9 +2141,11 @@ public class Shutter {
 			public void mouseClicked(MouseEvent e) {
 
 				if (FFMPEG.isRunning == false && BMXTRANSWRAP.isRunning == false && DVDAUTHOR.isRunning == false
-						&& TSMUXER.isRunning == false && e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1
-						&& liste.getSize() > 0)
+				&& TSMUXER.isRunning == false && e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1
+				&& liste.getSize() > 0)
+				{
 					menuDisplay.doClick();
+				}
 
 				if (e.getButton() == MouseEvent.BUTTON3 || (e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0 && e.getButton() == MouseEvent.BUTTON1)
 				{
@@ -2288,9 +2306,12 @@ public class Shutter {
 				dialog.setMultipleMode(true);
 				dialog.setVisible(true);
 
-				if (dialog.getFiles() != null) {
+				if (dialog.getFiles() != null)
+				{
 					File[] files = dialog.getFiles();
-					for (int i = 0; i < files.length; i++) {
+					
+					for (int i = 0; i < files.length; i++)
+					{						
 						int s = files[i].getAbsolutePath().toString().lastIndexOf('.');
 						String ext = files[i].getAbsolutePath().toString().substring(s);
 						if (ext.equals(".enc")) {
@@ -2305,28 +2326,18 @@ public class Shutter {
 						
 						if (file.getAbsolutePath().toString().contains("\"") || file.getAbsolutePath().toString().contains("\'") || file.getName().contains("/") || file.getName().contains("\\"))
 						{
-							Object[] options = { Shutter.language.getProperty("btnAdd"), Shutter.language.getProperty("btnNext"), Shutter.language.getProperty("btnCancel") };
-							
-							int q = JOptionPane.showOptionDialog(Shutter.frame, file.getAbsoluteFile().toString() + System.lineSeparator() + Shutter.language.getProperty("invalidCharacter"), Shutter.language.getProperty("import"),
-									JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
-												
-							if (q == 0) //OK
+							if (FunctionUtils.allowsInvalidCharacters == false) 
 							{
-								liste.addElement(file.getAbsolutePath());
-								addToList.setVisible(false);
-								lblFiles.setText(Utils.filesNumber());
-							}
-							else if (q == 1) //Next
-								continue;
-							else if (q == 2) //Cancel
-								break;
-						}
-						else
-						{
-							liste.addElement(file.getAbsolutePath());
-							addToList.setVisible(false);
-							lblFiles.setText(Utils.filesNumber());
-						}
+								JOptionPane.showConfirmDialog(Shutter.frame, file.getAbsoluteFile().toString() + System.lineSeparator() + Shutter.language.getProperty("invalidCharacter"), Shutter.language.getProperty("import"),
+								JOptionPane.PLAIN_MESSAGE, JOptionPane.WARNING_MESSAGE);
+								
+								FunctionUtils.allowsInvalidCharacters = true;
+							}														
+						}		
+						
+						liste.addElement(file.getAbsolutePath());
+						addToList.setVisible(false);
+						lblFiles.setText(Utils.filesNumber());
 					}
 
 					changeFilters();
@@ -2675,8 +2686,8 @@ public class Shutter {
 								JOptionPane.showMessageDialog(Shutter.frame, Shutter.language.getProperty("dragFolderToDestination"), Shutter.language.getProperty("chooseDestinationFolder"), JOptionPane.INFORMATION_MESSAGE);
 						else
 						{
-							String fonction = comboFonctions.getSelectedItem().toString();
-							if (language.getProperty("functionCut").equals(fonction)) 
+							String function = comboFonctions.getSelectedItem().toString();
+							if (language.getProperty("functionCut").equals(function)) 
 							{
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
@@ -2698,28 +2709,29 @@ public class Shutter {
 									}							
 								}	
 							}
-							else if ("WAV".equals(fonction)
-									|| "MP3".equals(fonction)
-									|| "AC3".equals(fonction)
-									|| "OPUS".equals(fonction)
-									|| "OGG".equals(fonction)
-									|| "AIFF".equals(fonction)
-									|| "FLAC".equals(fonction)
-									|| "AAC".equals(fonction)
-									|| "Dolby Digital Plus".equals(fonction)
-									|| "Dolby TrueHD".equals(fonction))
+							else if ("WAV".equals(function)
+									|| "MP3".equals(function)
+									|| "AC3".equals(function)
+									|| "OPUS".equals(function)
+									|| "OGG".equals(function)
+									|| "AIFF".equals(function)
+									|| "FLAC".equals(function)
+									|| "ALAC".equals(function)
+									|| "AAC".equals(function)
+									|| "Dolby Digital Plus".equals(function)
+									|| "Dolby TrueHD".equals(function))
 							{
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else
 									AudioEncoders.main();
 								
-							} else if ("Loudness & True Peak".equals(fonction)) {
+							} else if ("Loudness & True Peak".equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else
 									LoudnessTruePeak.main();
-							} else if (language.getProperty("functionMerge").equals(fonction)) {
+							} else if (language.getProperty("functionMerge").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else if (scanIsRunning)
@@ -2727,19 +2739,19 @@ public class Shutter {
 											language.getProperty("scanActivated"), JOptionPane.ERROR_MESSAGE);
 								else
 									Merge.main();
-							} else if (language.getProperty("functionExtract").equals(fonction)) { 
+							} else if (language.getProperty("functionExtract").equals(function)) { 
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else if (comboFilter.getSelectedItem().toString().equals(language.getProperty("setAll")))
 									Extract.extractAll();
 								else
 									Extract.main();
-							} else if (language.getProperty("functionConform").equals(fonction)) {
+							} else if (language.getProperty("functionConform").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else
 									Conform.main();				
-							} else if (language.getProperty("functionInsert").equals(fonction)) {
+							} else if (language.getProperty("functionInsert").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else if (scanIsRunning)
@@ -2747,7 +2759,7 @@ public class Shutter {
 											language.getProperty("scanActivated"), JOptionPane.ERROR_MESSAGE);
 								else
 									VideoInserts.main();
-							} else if (language.getProperty("functionReplaceAudio").equals(fonction)) {
+							} else if (language.getProperty("functionReplaceAudio").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else if (scanIsRunning)
@@ -2765,7 +2777,7 @@ public class Shutter {
 									else
 										ReplaceAudio.setStreams();
 								}
-							} else if (language.getProperty("functionSubtitles").equals(fonction)) {
+							} else if (language.getProperty("functionSubtitles").equals(function)) {
 								
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
@@ -2781,12 +2793,12 @@ public class Shutter {
 									caseInAndOut.doClick();
 									Utils.changeFrameVisibility(frame, true);
 								}
-							} else if (language.getProperty("functionNormalization").equals(fonction)) {
+							} else if (language.getProperty("functionNormalization").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else 
 									AudioNormalization.main();
-							} else if (language.getProperty("functionSceneDetection").equals(fonction)) {
+							} else if (language.getProperty("functionSceneDetection").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else if (scanIsRunning)
@@ -2800,12 +2812,12 @@ public class Shutter {
 										SceneDetection.btnAnalyze.doClick();
 									}
 								}
-							} else if (language.getProperty("functionBlackDetection").equals(fonction)) {
+							} else if (language.getProperty("functionBlackDetection").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else 
 									BlackDetection.main();
-							} else if (language.getProperty("functionOfflineDetection").equals(fonction)) {
+							} else if (language.getProperty("functionOfflineDetection").equals(function)) {
 								
 								Object[] options = {"Avid", "Davinci", "Premiere", "Custom"};
 								
@@ -2859,52 +2871,52 @@ public class Shutter {
 						        if (destinationFile.exists())
 						        	OfflineDetection.main();
 						        
-							} else if ("VMAF".equals(fonction)) {
+							} else if ("VMAF".equals(function)) {
 								
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else
 									VMAF.main();
 								
-							} else if ("DNxHD".equals(fonction)
-									|| "DNxHR".equals(fonction)
-									|| "Apple ProRes".equals(fonction)
-									|| "GoPro CineForm".equals(fonction)
-									|| "QT Animation".equals(fonction)
-									|| "Uncompressed".equals(fonction)
-									|| "H.264".equals(fonction)
-									|| "H.265".equals(fonction)
-									|| "WMV".equals(fonction)
-									|| "MPEG-1".equals(fonction)
-									|| "MPEG-2".equals(fonction)
-									|| "VP8".equals(fonction)
-									|| "VP9".equals(fonction)
-									|| "AV1".equals(fonction)
-									|| "OGV".equals(fonction)
-									|| "MJPEG".equals(fonction)
-									|| "Xvid".equals(fonction)
-									|| "XDCAM HD422".equals(fonction)
-									|| "AVC-Intra 100".equals(fonction)
-									|| "XAVC".equals(fonction)
-									|| "HAP".equals(fonction)
-									|| "FFV1".equals(fonction)
-									|| "DV PAL".equals(fonction))
+							} else if ("DNxHD".equals(function)
+									|| "DNxHR".equals(function)
+									|| "Apple ProRes".equals(function)
+									|| "GoPro CineForm".equals(function)
+									|| "QT Animation".equals(function)
+									|| "Uncompressed".equals(function)
+									|| "H.264".equals(function)
+									|| "H.265".equals(function)
+									|| "WMV".equals(function)
+									|| "MPEG-1".equals(function)
+									|| "MPEG-2".equals(function)
+									|| "VP8".equals(function)
+									|| "VP9".equals(function)
+									|| "AV1".equals(function)
+									|| "OGV".equals(function)
+									|| "MJPEG".equals(function)
+									|| "Xvid".equals(function)
+									|| "XDCAM HD422".equals(function)
+									|| "AVC-Intra 100".equals(function)
+									|| "XAVC".equals(function)
+									|| "HAP".equals(function)
+									|| "FFV1".equals(function)
+									|| "DV PAL".equals(function))
 							{
 									VideoEncoders.main(true);
 									
-							} else if ("DVD".equals(fonction)) {								
+							} else if ("DVD".equals(function)) {								
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else 
 									VideoEncoders.main(true);
-							} else if ("Blu-ray".equals(fonction)) {
+							} else if ("Blu-ray".equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else 
 									VideoEncoders.main(true);
-							} else if (language.getProperty("functionPicture").equals(fonction) || "JPEG".equals(fonction)) {
+							} else if (language.getProperty("functionPicture").equals(function) || "JPEG".equals(function)) {
 									Picture.main(true, false);
-							} else if (language.getProperty("functionRewrap").equals(fonction)) {
+							} else if (language.getProperty("functionRewrap").equals(function)) {
 								if (inputDeviceIsRunning)
 									JOptionPane.showMessageDialog(frame, language.getProperty("incompatibleInputDevice"), language.getProperty("menuItemScreenRecord"), JOptionPane.ERROR_MESSAGE);
 								else if (comboFilter.getEditor().getItem().toString().equals(language.getProperty("aucun"))
@@ -3007,7 +3019,7 @@ public class Shutter {
 				language.getProperty("functionSubtitles"),
 				language.getProperty("functionInsert"),
 				
-				language.getProperty("itemAudioConversion"), "WAV", "AIFF", "FLAC", "MP3", "AAC", "AC3", "OPUS", "OGG", "Dolby Digital Plus", "Dolby TrueHD",
+				language.getProperty("itemAudioConversion"), "WAV", "AIFF", "FLAC", "ALAC", "MP3", "AAC", "AC3", "OPUS", "OGG", "Dolby Digital Plus", "Dolby TrueHD",
 
 				language.getProperty("itemShowCodecs"), "HAP",
 
@@ -3106,7 +3118,7 @@ public class Shutter {
 				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemOuputCodecs")))
 				{
 					newList.clear();
-					
+
 					newList.add("H.264");
 					newList.add("H.265");
 					newList.add("VP8");
@@ -3118,7 +3130,7 @@ public class Shutter {
 				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemBroadcastCodecs")))
 				{
 					newList.clear();
-					
+
 					newList.add("XDCAM HD422");
 					newList.add("AVC-Intra 100");
 					newList.add("XAVC");
@@ -3127,14 +3139,14 @@ public class Shutter {
 				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemOldCodecs")))
 				{
 					newList.clear();
-					
+
 					newList.add("DV PAL");
 					newList.add("MJPEG");
 					newList.add("Xvid");
 					newList.add("WMV");
 					newList.add("MPEG-1");
 					newList.add("MPEG-2");
-					
+
 				}
 				else if (comboFonctions.getSelectedItem().equals(language.getProperty("itemAudioConversion")))
 				{
@@ -3143,6 +3155,7 @@ public class Shutter {
 					newList.add("WAV");
 					newList.add("AIFF");
 					newList.add("FLAC");
+					newList.add("ALAC");
 					newList.add("MP3");
 					newList.add("AAC");
 					newList.add("AC3");
@@ -3316,21 +3329,60 @@ public class Shutter {
 							caseFastStart.setEnabled(false);
 					}
 										
-					// Add quality selection for .webp .avif
+					// Add quality selection
 					if (comboFonctions.getSelectedItem().toString().equals(language.getProperty("functionPicture")))
 					{
 						if (comboFilter.getSelectedItem().toString().equals(".webp") || comboFilter.getSelectedItem().toString().equals(".avif"))
+						{							
+							if (comboImageOption.getItemAt(0).equals("100%") == false)
+							{
+								comboImageOption.setModel(new DefaultComboBoxModel<String>(new String[] { "100%","95%","90%","85%","80%","75%","70%","65%","60%","55%","50%","45%","40%","35%","30%","25%","20%","15%","10%","5%","0%" }));	
+							}
+							comboImageOption.setLocation(lblImageQuality.getX() + lblImageQuality.getWidth(), lblImageQuality.getLocation().y);
+							comboImageOption.setSize(50, 16);
+							grpResolution.add(lblImageQuality);											
+							grpResolution.add(comboImageOption);
+							comboImageOption.repaint();
+						}
+						else if (comboFilter.getSelectedItem().toString().equals(".tif"))
 						{
-							grpResolution.add(lblImageQuality);
-							grpResolution.add(comboImageQuality);
-							grpResolution.repaint();
+							if (comboImageOption.getItemAt(0).equals("packbits") == false)
+							{
+								comboImageOption.setModel(new DefaultComboBoxModel<String>(new String[] { "packbits", "raw", "lzw", "deflate" }));
+							}
+							comboImageOption.setLocation(iconTVResolution.getWidth() + iconTVResolution.getLocation().x + 8, lblImageQuality.getLocation().y);
+							comboImageOption.setSize(90, 16);
+							grpResolution.remove(lblImageQuality);
+							grpResolution.add(comboImageOption);
+							comboImageOption.repaint();
+						}
+						else if (comboFilter.getSelectedItem().toString().equals(".gif"))
+						{
+							if (comboImageOption.getItemAt(0).equals("15 " + Shutter.language.getProperty("fps")) == false)
+							{
+								String fps[] = new String[10];
+								int a = 0;
+								for (int f = 15 ; f < 25 ; f++)
+								{
+									fps[a] = f + " " + Shutter.language.getProperty("fps");
+									a++; 
+								}
+								
+								comboImageOption.setModel(new DefaultComboBoxModel<String>(fps));
+							}
+							comboImageOption.setLocation(iconTVResolution.getWidth() + iconTVResolution.getLocation().x + 8, lblImageQuality.getLocation().y);
+							comboImageOption.setSize(90, 16);
+							grpResolution.remove(lblImageQuality);
+							grpResolution.add(comboImageOption);
+							comboImageOption.repaint();
 						}
 						else
 						{
 							grpResolution.remove(lblImageQuality);
-							grpResolution.remove(comboImageQuality);
-							grpResolution.repaint();
+							grpResolution.remove(comboImageOption);
 						}
+						
+						grpResolution.repaint();
 					}
 
 					if (comboFonctions.getSelectedItem().toString().equals("DNxHD") 
@@ -4504,7 +4556,7 @@ public class Shutter {
 		comboResolution = new JComboBox<String>();
 		comboResolution.setName("comboResolution");
 		comboResolution.setModel(new DefaultComboBoxModel<String>(new String[] { language.getProperty("source"), "2:1", "4:1", "8:1", "16:1",
-				"4096:auto", "1920:auto", "1280:auto", "auto:480", "auto:360",
+				"3840:auto", "1920:auto", "auto:2160", "auto:1080", "auto:720",
 				"4096x2160", "3840x2160", "1920x1080", "1440x1080", "1280x720", "1024x768", "1024x576", "1000x1000",
 				"854x480", "720x576", "640x360", "500x500", "320x180", "200x200", "100x100", "50x50" }));
 		comboResolution.setFont(new Font(freeSansFont, Font.PLAIN, 11));
@@ -4527,8 +4579,7 @@ public class Shutter {
 					iconTVResolution.setLocation(comboResolution.getX() + comboResolution.getWidth() + 9, 21);	
 				}
 				else
-				{
-					lblPad.setText(language.getProperty("lblPad"));					
+				{				
 					lblPad.setVisible(true);
 					iconTVResolution.setLocation(lblPad.getX() + lblPad.getWidth() + 9, 21);
 				}	
@@ -4548,7 +4599,6 @@ public class Shutter {
 				if (comboFonctions.getSelectedItem().toString().equals("JPEG") == false && comboFonctions.getSelectedItem().toString().equals(language.getProperty("functionPicture")) == false)
 				{
 					lblPad.setVisible(true);
-					lblPad.setText(language.getProperty("lblPad"));
 					iconTVResolution.setLocation(lblPad.getX() + lblPad.getWidth() + 9, 21);
 				}
 				
@@ -4689,7 +4739,7 @@ public class Shutter {
 		comboInterpret.setName("comboInterpret");
 		comboInterpret.setEnabled(false);
 		comboInterpret.setModel(new DefaultComboBoxModel<String>(
-				new String[] { "1", "5", "10", "15","20", "23,976", "24", "25", "29,97", "30", "48", "50", "59,94", "60" }));
+				new String[] { "1", "5", "10", "15","20", "23,98", "24", "25", "29,97", "30", "48", "50", "59,94", "60" }));
 		comboInterpret.setSelectedIndex(7);
 		comboInterpret.setMaximumRowCount(20);
 		comboInterpret.setFont(new Font(freeSansFont, Font.PLAIN, 11));
@@ -4703,7 +4753,7 @@ public class Shutter {
 		lblIsInterpret.setSize(20, 16);
 		lblIsInterpret.setLocation(comboInterpret.getX() + comboInterpret.getWidth() + 5, lblInterpretation.getLocation().y - 1);
 		grpResolution.add(lblIsInterpret);		
-		if (getLanguage.equals(new Locale("ru").getDisplayLanguage()) || getLanguage.equals(new Locale("uk").getDisplayLanguage()) || getLanguage.equals(new Locale("vi").getDisplayLanguage()))
+		if (getLanguage.equals(Locale.of("ru").getDisplayLanguage()) || getLanguage.equals(Locale.of("uk").getDisplayLanguage()) || getLanguage.equals(Locale.of("vi").getDisplayLanguage()))
 		{
 			lblIsInterpret.setVisible(false);
 		}				
@@ -4822,17 +4872,16 @@ public class Shutter {
 		lblImageQuality.setBounds(iconTVResolution.getWidth() + iconTVResolution.getLocation().x + 8, comboResolution.getY() + 3, lblImageQuality.getPreferredSize().width + 4, 16);
 		grpResolution.add(lblImageQuality);
 		
-		comboImageQuality = new JComboBox<String>();
-		comboImageQuality.setName("comboImageQuality");
-		comboImageQuality.setModel(new DefaultComboBoxModel<String>(
-				new String[] { "100%","95%","90%","85%","80%","75%","70%","65%","60%","55%","50%","45%","40%","35%","30%","25%","20%","15%","10%","5%","0%" }));
-		comboImageQuality.setSelectedIndex(0);
-		comboImageQuality.setMaximumRowCount(20);
-		comboImageQuality.setFont(new Font(freeSansFont, Font.PLAIN, 11));
-		comboImageQuality.setEditable(true);
-		comboImageQuality.setSize(50, 16);
-		comboImageQuality.setLocation(lblImageQuality.getX() + lblImageQuality.getWidth(), lblImageQuality.getLocation().y);
-		grpResolution.add(comboImageQuality);
+		comboImageOption = new JComboBox<String>();
+		comboImageOption.setName("comboImageOption");
+		comboImageOption.setModel(new DefaultComboBoxModel<String>(new String[] { "100%","95%","90%","85%","80%","75%","70%","65%","60%","55%","50%","45%","40%","35%","30%","25%","20%","15%","10%","5%","0%" }));
+		comboImageOption.setSelectedIndex(0);
+		comboImageOption.setMaximumRowCount(20);
+		comboImageOption.setFont(new Font(freeSansFont, Font.PLAIN, 11));
+		comboImageOption.setEditable(false);
+		comboImageOption.setSize(90, 16);
+		comboImageOption.setLocation(lblImageQuality.getX() + lblImageQuality.getWidth(), lblImageQuality.getLocation().y);
+		grpResolution.add(comboImageOption);
 	}
 
 	private void grpImageSequence() {
@@ -4860,11 +4909,21 @@ public class Shutter {
 						public void run() {
 							try {
 									int i = 17;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = sized;
+											if (grpImageSequence.getY() + grpImageSequence.getHeight() + 6 + frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31
+											&& frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31)
+											{
+												r = sized - (int) (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) - 16);
+											}
+											else
+												r = sized - grpImageSequence.getSize().height;
+										}
 										else
 											i ++;
 
@@ -4875,26 +4934,26 @@ public class Shutter {
 										btnReset.setLocation(btnReset.getX(), grpAdvanced.getSize().height + grpAdvanced.getLocation().y + 6);
 
 										if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y - 1);
+													grpSetTimecode.getLocation().y - r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y - 1);
+													grpInAndOut.getLocation().y - r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y - 1);
+													grpSetAudio.getLocation().y - r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y - 1);
+													grpImageSequence.getLocation().y - r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y - 1);
+													grpColorimetry.getLocation().y - r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y - 1);
+													grpImageFilter.getLocation().y - r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y - 1);
+													grpTransitions.getLocation().y - r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y - 1);
+													grpAdvanced.getLocation().y - r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y - 1);
+													btnReset.getLocation().y - r);
 										}
 										
 										//Animate size
@@ -4910,15 +4969,28 @@ public class Shutter {
 				else
 				{
 					Thread changeSize = new Thread(new Runnable() {
+						
 						@Override
 						public void run() {
+							
 								try {
+									
 									int i = sized;
+									int r = 1;
 									do {
-										long startTime = System.currentTimeMillis() + 1;
 										
+										long startTime = System.currentTimeMillis() + 1;
+												
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = 17;
+											if (sized - 17 > grpChooseFiles.getY() - grpResolution.getY())
+											{
+												r = grpChooseFiles.getY() - grpResolution.getY();
+											}
+											else
+												r = sized - 17;
+										}
 										else
 											i --;
 										
@@ -4930,27 +5002,27 @@ public class Shutter {
 
 										if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 												 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 											grpBitrate.setLocation(grpBitrate.getLocation().x,
-													grpBitrate.getLocation().y + 1);
+													grpBitrate.getLocation().y + r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y + 1);
+													grpSetTimecode.getLocation().y + r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y + 1);
+													grpInAndOut.getLocation().y + r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y + 1);
+													grpSetAudio.getLocation().y + r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y + 1);
+													grpImageSequence.getLocation().y + r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y + 1);
+													grpColorimetry.getLocation().y + r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y + 1);
+													grpImageFilter.getLocation().y + r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y + 1);
+													grpTransitions.getLocation().y + r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y + 1);
+													grpAdvanced.getLocation().y + r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y + 1);
+													btnReset.getLocation().y + r);
 										}
 										
 										//Animate size
@@ -4995,7 +5067,7 @@ public class Shutter {
 		caseSequenceFPS = new JComboBox<String>();
 		caseSequenceFPS.setName("caseSequenceFPS");
 		caseSequenceFPS.setEnabled(false);
-		caseSequenceFPS.setModel(new DefaultComboBoxModel<String>(new String[] { "23,976", "24", "25", "29,97", "30", "48", "50", "59,94", "60", "100", "120", "150", "200", "250" }));
+		caseSequenceFPS.setModel(new DefaultComboBoxModel<String>(new String[] { "23,98", "24", "25", "29,97", "30", "48", "50", "59,94", "60", "100", "120", "150", "200", "250" }));
 		caseSequenceFPS.setSelectedIndex(2);
 		caseSequenceFPS.setMaximumRowCount(20);
 		caseSequenceFPS.setFont(new Font(freeSansFont, Font.PLAIN, 11));
@@ -5172,17 +5244,31 @@ public class Shutter {
 
 			@Override
 			public void mouseClicked(MouseEvent e) {
+				
 				if (grpImageFilter.getSize().height < 122) {
+					
 					Thread changeSize = new Thread(new Runnable() {
+						
 						@Override
 						public void run() {
 							try {
+								
 									int i = 17;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
-										
+
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = 122;
+											if (grpImageFilter.getY() + grpImageFilter.getHeight() + 6 + frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31
+											&& frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31)
+											{
+												r = 122 - (int) (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) - 16);
+											}
+											else
+												r = 122 - grpImageFilter.getSize().height;												
+										}
 										else
 											i ++;
 										
@@ -5190,26 +5276,26 @@ public class Shutter {
 										btnReset.setLocation(334, grpImageFilter.getSize().height + grpImageFilter.getLocation().y + 6);
 										
 										if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y - 1);
+													grpSetTimecode.getLocation().y - r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y - 1);
+													grpInAndOut.getLocation().y - r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y - 1);
+													grpSetAudio.getLocation().y - r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y - 1);
+													grpImageSequence.getLocation().y - r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y - 1);
+													grpColorimetry.getLocation().y - r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y - 1);
+													grpImageFilter.getLocation().y - r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y - 1);
+													grpTransitions.getLocation().y - r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y - 1);
+													grpAdvanced.getLocation().y - r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y - 1);
+													btnReset.getLocation().y - r);
 										}
 										
 										//Animate size
@@ -5225,15 +5311,27 @@ public class Shutter {
 				else
 				{
 					Thread changeSize = new Thread(new Runnable() {
+						
 						@Override
 						public void run() {
+							
 							try {
+								
 									int i = 122;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = 17;
+											if (122 - 17 > grpChooseFiles.getY() - grpResolution.getY())
+											{
+												r = grpChooseFiles.getY() - grpResolution.getY();
+											}
+											else
+												r = 122 - 17;
+										}
 										else
 											i --;
 										
@@ -5242,27 +5340,27 @@ public class Shutter {
 										
 										if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 												 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 											grpBitrate.setLocation(grpBitrate.getLocation().x,
-													grpBitrate.getLocation().y + 1);
+													grpBitrate.getLocation().y + r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y + 1);
+													grpSetTimecode.getLocation().y + r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y + 1);
+													grpInAndOut.getLocation().y + r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y + 1);
+													grpSetAudio.getLocation().y + r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y + 1);
+													grpImageSequence.getLocation().y + r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y + 1);
+													grpColorimetry.getLocation().y + r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y + 1);
+													grpImageFilter.getLocation().y + r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y + 1);
+													grpTransitions.getLocation().y + r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y + 1);
+													grpAdvanced.getLocation().y + r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y + 1);
+													btnReset.getLocation().y + r);
 										}
 										
 										//Animate size
@@ -5531,11 +5629,21 @@ public class Shutter {
 						public void run() {
 							try {
 									int i = 17;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = sized;
+											if (grpColorimetry.getY() + grpColorimetry.getHeight() + 6 + frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31
+											&& frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31)
+											{
+												r = sized - (int) (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) - 16);
+											}
+											else
+												r = sized - grpColorimetry.getSize().height;
+										}
 										else
 											i ++;
 										
@@ -5554,26 +5662,26 @@ public class Shutter {
 										}
 
 										if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y - 1);
+													grpSetTimecode.getLocation().y - r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y - 1);
+													grpInAndOut.getLocation().y - r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y - 1);
+													grpSetAudio.getLocation().y - r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y - 1);
+													grpImageSequence.getLocation().y - r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y - 1);
+													grpColorimetry.getLocation().y - r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y - 1);
+													grpImageFilter.getLocation().y - r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y - 1);
+													grpTransitions.getLocation().y - r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y - 1);
+													grpAdvanced.getLocation().y - r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y - 1);
+													btnReset.getLocation().y - r);
 										}
 										
 										//Animate size
@@ -5589,15 +5697,27 @@ public class Shutter {
 				else
 				{
 					Thread changeSize = new Thread(new Runnable() {
+						
 						@Override
 						public void run() {
+							
 								try {
-									int i = sized;									
+									
+									int i = sized;	
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = 17;
+											if (sized - 17 > grpChooseFiles.getY() - grpResolution.getY())
+											{
+												r = grpChooseFiles.getY() - grpResolution.getY();
+											}
+											else
+												r = sized - 17;
+										}
 										else
 											i --;
 										
@@ -5617,27 +5737,27 @@ public class Shutter {
 
 										if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 												 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 											grpBitrate.setLocation(grpBitrate.getLocation().x,
-													grpBitrate.getLocation().y + 1);
+													grpBitrate.getLocation().y + r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y + 1);
+													grpSetTimecode.getLocation().y + r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y + 1);
+													grpInAndOut.getLocation().y + r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y + 1);
+													grpSetAudio.getLocation().y + r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y + 1);
+													grpImageSequence.getLocation().y + r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y + 1);
+													grpColorimetry.getLocation().y + r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y + 1);
+													grpImageFilter.getLocation().y + r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y + 1);
+													grpTransitions.getLocation().y + r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y + 1);
+													grpAdvanced.getLocation().y + r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y + 1);
+													btnReset.getLocation().y + r);
 										}
 										
 										//Animate size
@@ -6314,11 +6434,21 @@ public class Shutter {
 						public void run() {
 							try {
 									int i = 17;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = sized;
+											if (grpSetTimecode.getY() + grpSetTimecode.getHeight() + 6 + frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31
+											&& frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31)
+											{
+												r = sized - (int) (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) - 16);
+											}
+											else
+												r = sized - grpSetTimecode.getSize().height;
+										}
 										else
 											i ++;
 
@@ -6342,26 +6472,26 @@ public class Shutter {
 										}
 
 										if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y - 1);
+													grpSetTimecode.getLocation().y - r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y - 1);
+													grpInAndOut.getLocation().y - r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y - 1);
+													grpSetAudio.getLocation().y - r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y - 1);
+													grpImageSequence.getLocation().y - r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y - 1);
+													grpColorimetry.getLocation().y - r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y - 1);
+													grpImageFilter.getLocation().y - r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y - 1);
+													grpTransitions.getLocation().y - r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y - 1);
+													grpAdvanced.getLocation().y - r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y - 1);
+													btnReset.getLocation().y - r);
 										}
 										
 										//Animate size
@@ -6381,11 +6511,20 @@ public class Shutter {
 						public void run() {
 								try {
 									int i = sized;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = 17;
+											if (sized - 17 > grpChooseFiles.getY() - grpResolution.getY())
+											{
+												r = grpChooseFiles.getY() - grpResolution.getY();
+											}
+											else
+												r = sized - 17;
+										}
 										else
 											i --;
 										
@@ -6410,27 +6549,27 @@ public class Shutter {
 										
 										if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 												 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 											grpBitrate.setLocation(grpBitrate.getLocation().x,
-													grpBitrate.getLocation().y + 1);
+													grpBitrate.getLocation().y + r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y + 1);
+													grpSetTimecode.getLocation().y + r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y + 1);
+													grpInAndOut.getLocation().y + r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y + 1);
+													grpSetAudio.getLocation().y + r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y + 1);
+													grpImageSequence.getLocation().y + r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y + 1);
+													grpColorimetry.getLocation().y + r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y + 1);
+													grpImageFilter.getLocation().y + r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y + 1);
+													grpTransitions.getLocation().y + r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y + 1);
+													grpAdvanced.getLocation().y + r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y + 1);
+													btnReset.getLocation().y + r);
 										}
 										
 										//Animate size
@@ -6864,6 +7003,7 @@ public class Shutter {
 							public void run() {
 								try {
 										int i = 17;
+										int r = 1;
 										int sized;
 										if (language.getProperty("functionRewrap").equals(comboFonctions.getSelectedItem().toString()) 
 										|| language.getProperty("functionCut").equals(comboFonctions.getSelectedItem().toString())
@@ -6898,7 +7038,16 @@ public class Shutter {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = sized;
+												if (grpSetAudio.getY() + grpSetAudio.getHeight() + 6 + frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31
+												&& frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31)
+												{
+													r = sized - (int) (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) - 16);
+												}
+												else
+													r = sized - grpSetAudio.getSize().height;
+											}
 											else
 												i ++;
 	
@@ -6928,26 +7077,26 @@ public class Shutter {
 											}
 	
 											if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-												grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+												grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y - 1);
+														grpSetTimecode.getLocation().y - r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y - 1);
+														grpInAndOut.getLocation().y - r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y - 1);
+														grpSetAudio.getLocation().y - r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y - 1);
+														grpImageSequence.getLocation().y - r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y - 1);
+														grpColorimetry.getLocation().y - r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y - 1);
+														grpImageFilter.getLocation().y - r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y - 1);
+														grpTransitions.getLocation().y - r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y - 1);
+														grpAdvanced.getLocation().y - r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y - 1);
+														btnReset.getLocation().y - r);
 											}
 											
 											//Animate size
@@ -6967,6 +7116,7 @@ public class Shutter {
 							public void run() {
 									try {
 										int i;
+										int r = 1;
 										if (language.getProperty("functionRewrap").equals(comboFonctions.getSelectedItem().toString()) 
 											|| language.getProperty("functionCut").equals(comboFonctions.getSelectedItem().toString())
 											|| language.getProperty("functionMerge").equals(comboFonctions.getSelectedItem().toString())
@@ -7000,7 +7150,15 @@ public class Shutter {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 17;
+												if (sized - 17 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 17;
+											}
 											else
 												i --;
 											
@@ -7031,27 +7189,27 @@ public class Shutter {
 	
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -7110,7 +7268,7 @@ public class Shutter {
 					comboAudioBitrate.setEnabled(false);
 				}
 				
-				if (comboAudioCodec.getSelectedItem().toString().contains("PCM") || comboAudioCodec.getSelectedItem().toString().contains("FLAC"))
+				if (comboAudioCodec.getSelectedItem().toString().contains("PCM") || comboAudioCodec.getSelectedItem().toString().contains("FLAC") || comboAudioCodec.getSelectedItem().toString().contains("ALAC"))
 				{
 					comboAudioBitrate.setModel(new DefaultComboBoxModel<String>(new String[] {"1536"}));
 					comboAudioBitrate.setSelectedIndex(0);
@@ -7379,12 +7537,16 @@ public class Shutter {
 							public void run() {
 								try {
 										int i = 74;
+										int r = 1;
 										int sized = 128;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = sized;
+												r = 0;
+											}
 											else
 												i ++;
 											
@@ -7406,26 +7568,26 @@ public class Shutter {
 											}
 												
 											if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-												grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+												grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y - 1);
+														grpSetTimecode.getLocation().y - r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y - 1);
+														grpInAndOut.getLocation().y - r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y - 1);
+														grpSetAudio.getLocation().y - r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y - 1);
+														grpImageSequence.getLocation().y - r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y - 1);
+														grpColorimetry.getLocation().y - r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y - 1);
+														grpImageFilter.getLocation().y - r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y - 1);
+														grpTransitions.getLocation().y - r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y - 1);
+														grpAdvanced.getLocation().y - r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y - 1);
+														btnReset.getLocation().y - r);
 											}
 											
 											//Animate size
@@ -7454,11 +7616,15 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												r = 0;
+											}
 											else
 												i --;
 
@@ -7481,27 +7647,27 @@ public class Shutter {
 											
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -7570,15 +7736,6 @@ public class Shutter {
 			public void mouseClicked(MouseEvent e) {
 				switch (lbl48k.getText())
 				{
-					case "8k" :
-						lbl48k.setText("16k");
-						break;
-					case "16k" :
-						lbl48k.setText("32k");
-						break;
-					case "32k" :
-						lbl48k.setText("44.1k");
-						break;
 					case "44.1k" :
 						lbl48k.setText("48k");
 						break;
@@ -7589,7 +7746,7 @@ public class Shutter {
 						lbl48k.setText("192k");
 						break;
 					case "192k" :
-						lbl48k.setText("8k");
+						lbl48k.setText("44.1k");
 						break;
 				}
 			}
@@ -7627,7 +7784,7 @@ public class Shutter {
 					debitAudio.setModel(comboAudioBitrate.getModel());
 					debitAudio.setSelectedIndex(5);
 				}
-				else if (comboAudioCodec.getSelectedItem().toString().contains("PCM"))
+				else if (comboAudioCodec.getSelectedItem().toString().contains("PCM") || comboAudioCodec.getSelectedItem().toString().contains("ALAC"))
 				{
 					lblAudioBitrate.setText(language.getProperty("lblAudioBitrate"));
 					comboAudioBitrate.setModel(new DefaultComboBoxModel<String>(new String[] {"1536"}));
@@ -7684,11 +7841,15 @@ public class Shutter {
 					if (comboAudioCodec.getSelectedItem().toString().contains("PCM"))
 					{
 						comboFilter.setSelectedIndex(1);
+						lblAudioKbs.setVisible(true);
 					}
 					else if (comboAudioCodec.getSelectedItem().toString().contains("FLAC"))
 					{
 						comboFilter.setSelectedIndex(2);
+						lblAudioKbs.setVisible(false);
 					}
+					else
+						lblAudioKbs.setVisible(true);
 				}
 			}
 			
@@ -8190,7 +8351,7 @@ public class Shutter {
 		comboAudioIn.setName("comboAudioIn");
 		comboAudioIn.setEnabled(false);
 		comboAudioIn.setModel(new DefaultComboBoxModel<String>(
-				new String[] { "23,976", "24", "25", "29,97", "30", "48", "50", "59,94", "60" }));
+				new String[] { "23,98", "24", "25", "29,97", "30", "48", "50", "59,94", "60" }));
 		comboAudioIn.setSelectedIndex(2);
 		comboAudioIn.setMaximumRowCount(20);
 		comboAudioIn.setFont(new Font(freeSansFont, Font.PLAIN, 11));
@@ -8224,7 +8385,7 @@ public class Shutter {
 		comboAudioOut.setName("comboAudioOut");
 		comboAudioOut.setEnabled(false);
 		comboAudioOut.setModel(new DefaultComboBoxModel<String>(
-				new String[] { "23,976", "24", "25", "29,97", "30", "48", "50", "59,94", "60" }));
+				new String[] { "23,98", "24", "25", "29,97", "30", "48", "50", "59,94", "60" }));
 		comboAudioOut.setSelectedIndex(1);
 		comboAudioOut.setMaximumRowCount(20);
 		comboAudioOut.setFont(new Font(freeSansFont, Font.PLAIN, 11));
@@ -8253,7 +8414,7 @@ public class Shutter {
 		lblAudioIs.setSize(lblAudioIs.getPreferredSize().width, 16);
 		lblAudioIs.setLocation(comboAudioOut.getLocation().x + comboAudioOut.getWidth() + 7, caseConvertAudioFramerate.getLocation().y + 3);
 		
-		if (getLanguage.equals(new Locale("nl").getDisplayLanguage()) == false && getLanguage.equals(new Locale("ru").getDisplayLanguage()) == false && getLanguage.equals(new Locale("uk").getDisplayLanguage()) == false)		
+		if (getLanguage.equals(Locale.of("nl").getDisplayLanguage()) == false && getLanguage.equals(Locale.of("ru").getDisplayLanguage()) == false && getLanguage.equals(Locale.of("uk").getDisplayLanguage()) == false)		
 			grpAudio.add(lblAudioIs);
 	}
 
@@ -8281,39 +8442,49 @@ public class Shutter {
 						public void run() {
 							try {
 									int i = 17;
+									int r = 1;	
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = sized;
+											if (grpTransitions.getY() + grpTransitions.getHeight() + 6 + frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31
+											&& frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31)
+											{
+												r = sized - (int) (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) - 16);
+											}
+											else
+												r = sized - grpTransitions.getSize().height;
+										}
 										else
 											i ++;
-										
+																														
 										grpTransitions.setSize(312, i);
 										grpAdvanced.setLocation(grpTransitions.getLocation().x, grpTransitions.getSize().height + grpTransitions.getLocation().y + 6);
 										btnReset.setLocation(334, grpAdvanced.getSize().height + grpAdvanced.getLocation().y + 6);
 										
 										if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y - 1);
+													grpSetTimecode.getLocation().y - r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y - 1);
+													grpInAndOut.getLocation().y - r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y - 1);
+													grpSetAudio.getLocation().y - r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y - 1);
+													grpImageSequence.getLocation().y - r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y - 1);
+													grpColorimetry.getLocation().y - r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y - 1);
+													grpImageFilter.getLocation().y - r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y - 1);
+													grpTransitions.getLocation().y - r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y - 1);
+													grpAdvanced.getLocation().y - r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y - 1);
+													btnReset.getLocation().y - r);
 										}
 										
 										//Animate size
@@ -8329,15 +8500,27 @@ public class Shutter {
 				else
 				{
 					Thread changeSize = new Thread(new Runnable() {
+						
 						@Override
 						public void run() {
+							
 								try {
+									
 									int i = sized;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = 17;
+											if (sized - 17 > grpChooseFiles.getY() - grpResolution.getY())
+											{
+												r = grpChooseFiles.getY() - grpResolution.getY();
+											}
+											else
+												r = sized - 17;
+										}
 										else
 											i --;
 																				
@@ -8347,27 +8530,27 @@ public class Shutter {
 										
 										if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 												 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 											grpBitrate.setLocation(grpBitrate.getLocation().x,
-													grpBitrate.getLocation().y + 1);
+													grpBitrate.getLocation().y + r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y + 1);
+													grpSetTimecode.getLocation().y + r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y + 1);
+													grpInAndOut.getLocation().y + r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y + 1);
+													grpSetAudio.getLocation().y + r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y + 1);
+													grpImageSequence.getLocation().y + r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y + 1);
+													grpColorimetry.getLocation().y + r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y + 1);
+													grpImageFilter.getLocation().y + r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y + 1);
+													grpTransitions.getLocation().y + r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y + 1);
+													grpAdvanced.getLocation().y + r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y + 1);
+													btnReset.getLocation().y + r);
 										}
 										
 										//Animate size
@@ -8433,7 +8616,7 @@ public class Shutter {
 		spinnerVideoFadeIn.setName("spinnerVideoFadeIn");
 		spinnerVideoFadeIn.setEnabled(false);
 		spinnerVideoFadeIn.setFont(new Font(freeSansFont, Font.PLAIN, 11));
-		if (getLanguage.equals(new Locale("en").getDisplayLanguage()))
+		if (getLanguage.equals(Locale.of("en").getDisplayLanguage()))
 			spinnerVideoFadeIn.setBounds(caseVideoFadeIn.getLocation().x + caseVideoFadeIn.getWidth() + 12, caseVideoFadeIn.getLocation().y + 3, 41, 16);
 		else
 			spinnerVideoFadeIn.setBounds(caseVideoFadeIn.getLocation().x + caseVideoFadeIn.getWidth() + 6, caseVideoFadeIn.getLocation().y + 3, 41, 16);
@@ -8563,7 +8746,7 @@ public class Shutter {
 		JLabel iconFadeIn = new JLabel(new FlatSVGIcon("contents/preview.svg", 16, 16));
 		iconFadeIn.setToolTipText(language.getProperty("preview"));
 		iconFadeIn.setHorizontalAlignment(SwingConstants.CENTER);		
-		if (getLanguage.equals(new Locale("ru").getDisplayLanguage()) || getLanguage.equals(new Locale("pl").getDisplayLanguage()))
+		if (getLanguage.equals(Locale.of("ru").getDisplayLanguage()) || getLanguage.equals(Locale.of("pl").getDisplayLanguage()))
 			iconFadeIn.setBounds(lblFadeInColor.getX() + lblFadeInColor.getWidth() + 3, lblFadeInColor.getY(), 16, 16);
 		else
 			iconFadeIn.setBounds(lblFadeInColor.getX() + lblFadeInColor.getWidth() + 8, lblFadeInColor.getY(), 16, 16);
@@ -8767,7 +8950,7 @@ public class Shutter {
 		JLabel iconFadeOut = new JLabel(new FlatSVGIcon("contents/preview.svg", 16, 16));
 		iconFadeOut.setToolTipText(language.getProperty("preview"));
 		iconFadeOut.setHorizontalAlignment(SwingConstants.CENTER);
-		if (getLanguage.equals(new Locale("ru").getDisplayLanguage()) || getLanguage.equals(new Locale("pl").getDisplayLanguage()))
+		if (getLanguage.equals(Locale.of("ru").getDisplayLanguage()) || getLanguage.equals(Locale.of("pl").getDisplayLanguage()))
 			iconFadeOut.setBounds(lblFadeOutColor.getX() + lblFadeOutColor.getWidth() + 3, lblFadeOutColor.getY(), 16, 16);
 		else
 			iconFadeOut.setBounds(lblFadeOutColor.getX() + lblFadeOutColor.getWidth() + 8, lblFadeOutColor.getY(), 16, 16);		
@@ -8817,7 +9000,7 @@ public class Shutter {
 			}
 		};	
 		linkFadeIn.setLocation(lblFadeInColor.getX(), iconFadeIn.getY() + iconFadeIn.getHeight());
-		if (getLanguage.equals(new Locale("ru").getDisplayLanguage()) || getLanguage.equals(new Locale("pl").getDisplayLanguage()))
+		if (getLanguage.equals(Locale.of("ru").getDisplayLanguage()) || getLanguage.equals(Locale.of("pl").getDisplayLanguage()))
 			linkFadeIn.setSize(lblFadeInColor.getWidth() + iconFadeIn.getWidth() - 3, 10);
 		else
 			linkFadeIn.setSize(lblFadeInColor.getWidth() + iconFadeIn.getWidth() + 1, 10);
@@ -8837,7 +9020,7 @@ public class Shutter {
 			}
 		};	
 		linkFadeOut.setLocation(lblFadeOutColor.getX(), iconFadeOut.getY() + iconFadeOut.getHeight());
-		if (getLanguage.equals(new Locale("ru").getDisplayLanguage()) || getLanguage.equals(new Locale("pl").getDisplayLanguage()))
+		if (getLanguage.equals(Locale.of("ru").getDisplayLanguage()) || getLanguage.equals(Locale.of("pl").getDisplayLanguage()))
 			linkFadeOut.setSize(lblFadeOutColor.getWidth() + iconFadeOut.getWidth() - 3, 10);
 		else
 			linkFadeOut.setSize(lblFadeOutColor.getWidth() + iconFadeOut.getWidth() + 1, 10);
@@ -8873,11 +9056,21 @@ public class Shutter {
 						public void run() {
 							try {
 									int i = 17;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = sized;
+											if (grpAdvanced.getY() + grpAdvanced.getHeight() + 6 + frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31
+											&& frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) > 31)
+											{
+												r = sized - (int) (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) - 16);
+											}
+											else
+												r = sized - grpAdvanced.getSize().height;
+										}
 										else
 											i ++;
 										
@@ -8885,26 +9078,26 @@ public class Shutter {
 										btnReset.setLocation(334, grpAdvanced.getSize().height + grpAdvanced.getLocation().y + 6);
 
 										if (frame.getSize().getHeight() - (btnReset.getLocation().y + btnReset.getHeight()) < 31) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - 1);
-											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y - r);
+											grpBitrate.setLocation(grpBitrate.getLocation().x, grpBitrate.getLocation().y - r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y - 1);
+													grpSetTimecode.getLocation().y - r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y - 1);
+													grpInAndOut.getLocation().y - r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y - 1);
+													grpSetAudio.getLocation().y - r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y - 1);
+													grpImageSequence.getLocation().y - r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y - 1);
+													grpColorimetry.getLocation().y - r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y - 1);
+													grpImageFilter.getLocation().y - r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y - 1);
+													grpTransitions.getLocation().y - r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y - 1);
+													grpAdvanced.getLocation().y - r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y - 1);
+													btnReset.getLocation().y - r);
 										}
 										
 										//Animate size
@@ -8924,11 +9117,20 @@ public class Shutter {
 						public void run() {
 								try {
 									int i = sized;
+									int r = 1;
 									do {
 										long startTime = System.currentTimeMillis() + 1;
 										
 										if (Settings.btnDisableAnimations.isSelected())
+										{
 											i = 17;
+											if (sized - 17 > grpChooseFiles.getY() - grpResolution.getY())
+											{
+												r = grpChooseFiles.getY() - grpResolution.getY();
+											}
+											else
+												r = sized - 17;
+										}
 										else
 											i --;
 										
@@ -8937,27 +9139,27 @@ public class Shutter {
 										
 										if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 												 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+											grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 											grpBitrate.setLocation(grpBitrate.getLocation().x,
-													grpBitrate.getLocation().y + 1);
+													grpBitrate.getLocation().y + r);
 											grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-													grpSetTimecode.getLocation().y + 1);
+													grpSetTimecode.getLocation().y + r);
 											grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-													grpInAndOut.getLocation().y + 1);
+													grpInAndOut.getLocation().y + r);
 											grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-													grpSetAudio.getLocation().y + 1);
+													grpSetAudio.getLocation().y + r);
 											grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-													grpImageSequence.getLocation().y + 1);
+													grpImageSequence.getLocation().y + r);
 											grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-													grpColorimetry.getLocation().y + 1);
+													grpColorimetry.getLocation().y + r);
 											grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-													grpImageFilter.getLocation().y + 1);
+													grpImageFilter.getLocation().y + r);
 											grpTransitions.setLocation(grpTransitions.getLocation().x,
-													grpTransitions.getLocation().y + 1);
+													grpTransitions.getLocation().y + r);
 											grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-													grpAdvanced.getLocation().y + 1);
+													grpAdvanced.getLocation().y + r);
 											btnReset.setLocation(btnReset.getLocation().x,
-													btnReset.getLocation().y + 1);
+													btnReset.getLocation().y + r);
 										}
 										
 										//Animate size
@@ -9143,7 +9345,7 @@ public class Shutter {
 		comboDAR.setSize(54, 16);
 		comboDAR.setLocation(caseForcerDAR.getLocation().x + caseForcerDAR.getWidth() + 4, caseForcerDAR.getLocation().y + 3);
 		grpResolution.add(comboDAR);
-		
+				
 		caseCreateTree = new JCheckBox(language.getProperty("caseCreateTree"));
 		caseCreateTree.setName("caseCreateTree");
 		caseCreateTree.setFont(new Font(freeSansFont, Font.PLAIN, 12));
@@ -9364,7 +9566,7 @@ public class Shutter {
 		comboFPS = new JComboBox<String>();
 		comboFPS.setName("comboFPS");
 		comboFPS.setEnabled(false);
-		comboFPS.setModel(new DefaultComboBoxModel<String>(new String[] { "23,976", "24", "25", "29,97", "30", "48", "50", "59,94", "60", "100", "120", "150", "200", "250" }));
+		comboFPS.setModel(new DefaultComboBoxModel<String>(new String[] { "23,98", "24", "25", "29,97", "30", "48", "50", "59,94", "60", "100", "120", "150", "200", "250" }));
 		comboFPS.setSelectedIndex(2);
 		comboFPS.setMaximumRowCount(20);
 		comboFPS.setFont(new Font(freeSansFont, Font.PLAIN, 11));
@@ -9383,7 +9585,7 @@ public class Shutter {
 		lblIsConform = new JLabel(Shutter.language.getProperty("fps"));
 		lblIsConform.setFont(new Font(freeSansFont, Font.PLAIN, 12));
 		lblIsConform.setSize(20, 16);
-		if (getLanguage.equals(new Locale("ru").getDisplayLanguage()) || getLanguage.equals(new Locale("uk").getDisplayLanguage()) || getLanguage.equals(new Locale("vi").getDisplayLanguage()))
+		if (getLanguage.equals(Locale.of("ru").getDisplayLanguage()) || getLanguage.equals(Locale.of("uk").getDisplayLanguage()) || getLanguage.equals(Locale.of("vi").getDisplayLanguage()))
 			lblIsConform.setVisible(false);
 		
 		caseForcerProgressif.addActionListener(new ActionListener() {
@@ -9527,6 +9729,14 @@ public class Shutter {
 		
 								if (FFMPEG.error == false)
 									graphicsAccel.add("Intel Quick Sync");
+
+								FFMPEG.hwaccel("-f lavfi -i nullsrc -t 1 -c:v av1_amf -s 640x360 -f null -" + '"');
+								do {
+									Thread.sleep(10);
+								} while (FFMPEG.runProcess.isAlive());
+		
+								if (FFMPEG.error == false)
+									graphicsAccel.add("AMD AMF Encoder");
 							}
 						}
 						else
@@ -9538,7 +9748,7 @@ public class Shutter {
 							//Accélération graphique Windows
 							if (System.getProperty("os.name").contains("Windows"))
 							{
-								FFMPEG.hwaccel("-f lavfi -i nullsrc -t 1 -c:v " + codec + "_nvenc -s 640x360 -f null -" + '"');
+								FFMPEG.hwaccel("-f lavfi -i nullsrc -t 1 -c:v " + codec + "_nvenc -b_ref_mode 0 -s 640x360 -f null -" + '"');
 								do {
 									Thread.sleep(10);
 								} while (FFMPEG.runProcess.isAlive());
@@ -10469,7 +10679,7 @@ public class Shutter {
 				//codecs de sortie
 				if (grpBitrate.isVisible())
 				{
-					if (VideoPlayer.caseEnableCrop.isSelected())
+					if (caseInAndOut.isSelected() && VideoPlayer.caseEnableCrop.isSelected())
 					{
 						if (lblPad.getText().equals(language.getProperty("lblPad")))
 						{
@@ -10482,11 +10692,12 @@ public class Shutter {
 					}
 					else
 					{
+						
 						if (lblPad.getText().equals(language.getProperty("lblPad")))
 						{
 							lblPad.setText(language.getProperty("lblStretch"));
 						}
-						else if (lblPad.getText().equals(language.getProperty("lblStretch")))
+						else
 						{
 							lblPad.setText(language.getProperty("lblPad"));
 						}
@@ -10564,10 +10775,10 @@ public class Shutter {
 		debitAudio.setBounds(debitVideo.getX(), debitVideo.getY() + debitVideo.getHeight() + 5, debitVideo.getWidth(), 22);
 		grpBitrate.add(debitAudio);
 		
-		JLabel lblKbs = new JLabel("kb/s");
-		lblKbs.setFont(new Font(freeSansFont, Font.PLAIN, 12));
-		lblKbs.setBounds(lblKbsH264.getX(), debitAudio.getY() + 3, 33, 16);
-		grpBitrate.add(lblKbs);
+		lblAudioKbs = new JLabel("kb/s");
+		lblAudioKbs.setFont(new Font(freeSansFont, Font.PLAIN, 12));
+		lblAudioKbs.setBounds(lblKbsH264.getX(), debitAudio.getY() + 3, 33, 16);
+		grpBitrate.add(lblAudioKbs);
 
 		lblSize = new JLabel(language.getProperty("size"));
 		lblSize.setFont(new Font(freeSansFont, Font.PLAIN, 12));
@@ -10840,7 +11051,11 @@ public class Shutter {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				
-				if (lblVBR.getText().equals("VBR") && caseAccel.isSelected() == false && comboFonctions.getSelectedItem().toString().contains("H.26"))
+				if (lblVBR.getText().equals("VBR")
+				&& (caseAccel.isSelected() == false
+				|| caseAccel.isSelected() && comboAccel.getSelectedItem().equals("Nvidia NVENC")
+				|| caseAccel.isSelected() && comboAccel.getSelectedItem().equals("AMD AMF Encoder"))
+				&& comboFonctions.getSelectedItem().toString().contains("H.26"))
 				{
 					lblVBR.setText("CBR");
 				}
@@ -10916,7 +11131,7 @@ public class Shutter {
 				
 				// Resolution
 				comboResolution.setSelectedIndex(0);
-				comboImageQuality.setSelectedIndex(0);
+				comboImageOption.setSelectedIndex(0);
 				caseCreateSequence.setSelected(false);
 				comboInterpret.setEnabled(false);
 				comboInterpret.setSelectedIndex(7);
@@ -11062,15 +11277,27 @@ public class Shutter {
 					if (grpSetAudio.getSize().height > sized)
 					{
 						Thread changeSize = new Thread(new Runnable() {
+							
 							@Override
 							public void run() {
+								
 									try {
+										
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11083,27 +11310,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -11119,7 +11346,7 @@ public class Shutter {
 				}
 				else if (comboFonctions.getSelectedItem().toString().contains("H.26"))
 				{
-					comboAudioCodec.setModel(new DefaultComboBoxModel<String>(new String[] {"AAC", "MP3", "AC3", "OPUS", "FLAC", "Dolby Digital Plus", "PCM 16Bits", "PCM 24Bits", "PCM 32Bits", language.getProperty("codecCopy"), language.getProperty("noAudio") }));
+					comboAudioCodec.setModel(new DefaultComboBoxModel<String>(new String[] {"AAC", "MP3", "AC3", "OPUS", "FLAC", "PCM 16Bits", "PCM 24Bits", "PCM 32Bits", "ALAC 16Bits", "ALAC 24Bits", "Dolby Digital Plus", language.getProperty("codecCopy"), language.getProperty("noAudio") }));
 					comboAudioCodec.setSelectedIndex(0);						
 					debitAudio.setModel(comboAudioBitrate.getModel());
 					debitAudio.setSelectedIndex(10);
@@ -11138,11 +11365,20 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11155,27 +11391,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -11210,11 +11446,20 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11227,27 +11472,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -11282,11 +11527,20 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11299,27 +11553,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 												}
 											
 											//Animate size
@@ -11354,11 +11608,20 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11371,27 +11634,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -11426,11 +11689,20 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11443,27 +11715,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -11498,11 +11770,20 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11515,27 +11796,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -11570,11 +11851,20 @@ public class Shutter {
 							public void run() {
 									try {
 										int i = 128;
+										int r = 1;
 										do {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+												if (sized - 74 > grpChooseFiles.getY() - grpResolution.getY())
+												{
+													r = grpChooseFiles.getY() - grpResolution.getY();
+												}
+												else
+													r = sized - 74;
+											}
 											else
 												i --;
 
@@ -11587,27 +11877,27 @@ public class Shutter {
 
 											if (grpInAndOut.getLocation().y < grpChooseFiles.getLocation().y && grpInAndOut.isVisible()
 													 || grpResolution.getLocation().y < grpChooseFiles.getLocation().y && grpResolution.isVisible() ) {
-												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + 1);
+												grpResolution.setLocation(grpResolution.getLocation().x, grpResolution.getLocation().y + r);
 												grpBitrate.setLocation(grpBitrate.getLocation().x,
-														grpBitrate.getLocation().y + 1);
+														grpBitrate.getLocation().y + r);
 												grpSetTimecode.setLocation(grpSetTimecode.getLocation().x,
-														grpSetTimecode.getLocation().y + 1);
+														grpSetTimecode.getLocation().y + r);
 												grpInAndOut.setLocation(grpInAndOut.getLocation().x,
-														grpInAndOut.getLocation().y + 1);
+														grpInAndOut.getLocation().y + r);
 												grpSetAudio.setLocation(grpSetAudio.getLocation().x,
-														grpSetAudio.getLocation().y + 1);
+														grpSetAudio.getLocation().y + r);
 												grpImageSequence.setLocation(grpImageSequence.getLocation().x,
-														grpImageSequence.getLocation().y + 1);
+														grpImageSequence.getLocation().y + r);
 												grpColorimetry.setLocation(grpColorimetry.getLocation().x,
-														grpColorimetry.getLocation().y + 1);
+														grpColorimetry.getLocation().y + r);
 												grpImageFilter.setLocation(grpImageFilter.getLocation().x,
-														grpImageFilter.getLocation().y + 1);
+														grpImageFilter.getLocation().y + r);
 												grpTransitions.setLocation(grpTransitions.getLocation().x,
-														grpTransitions.getLocation().y + 1);
+														grpTransitions.getLocation().y + r);
 												grpAdvanced.setLocation(grpAdvanced.getLocation().x,
-														grpAdvanced.getLocation().y + 1);
+														grpAdvanced.getLocation().y + r);
 												btnReset.setLocation(btnReset.getLocation().x,
-														btnReset.getLocation().y + 1);
+														btnReset.getLocation().y + r);
 											}
 											
 											//Animate size
@@ -11646,7 +11936,9 @@ public class Shutter {
 											long startTime = System.currentTimeMillis() + 1;
 											
 											if (Settings.btnDisableAnimations.isSelected())
+											{
 												i = 74;
+											}
 											else
 												i --;
 
@@ -11736,6 +12028,7 @@ public class Shutter {
 				{
 					lblPad.setVisible(true);
 				}
+				lblPad.setText(language.getProperty("lblPad"));
 				
 				caseOpenGop.setSelected(false);
 				caseForceOutput.setSelected(false);
@@ -12298,7 +12591,7 @@ public class Shutter {
 		if (language.getProperty("functionCut").equals(function) || language.getProperty("functionRewrap").equals(function) 
 				|| language.getProperty("functionMerge").equals(function)
 				|| language.getProperty("functionReplaceAudio").equals(function)
-				|| "WAV".equals(function) || "AIFF".equals(function) || "FLAC".equals(function)
+				|| "WAV".equals(function) || "AIFF".equals(function) || "FLAC".equals(function) || "ALAC".equals(function)
 				|| "MP3".equals(function) || "AAC".equals(function) || "AC3".equals(function) || "OPUS".equals(function)
 				|| "OGG".equals(function) || "Dolby Digital Plus".equals(function) || "Dolby TrueHD".equals(function) || "Loudness & True Peak".equals(function)
 				|| language.getProperty("functionBlackDetection").equals(function) || language.getProperty("functionOfflineDetection").equals(function) || "VMAF".equals(function)
@@ -12768,8 +13061,8 @@ public class Shutter {
 						
 						btnReset.setVisible(true);
 				
-						if (language.getProperty("functionRewrap").equals(function) || language.getProperty("functionCut").equals(function) || language.getProperty("functionMerge").equals(function)) {
-							
+						if (language.getProperty("functionRewrap").equals(function) || language.getProperty("functionCut").equals(function) || language.getProperty("functionMerge").equals(function))
+						{							
 							if (language.getProperty("functionCut").equals(function) || language.getProperty("functionMerge").equals(function))
 							{
 								addToList.setText(language.getProperty("filesVideoOrAudio"));
@@ -12818,11 +13111,17 @@ public class Shutter {
 								
 								if (language.getProperty("functionRewrap").equals(function))	
 								{
-									caseCreateOPATOM.setLocation(7, casePreserveMetadata.getLocation().y + 17);
+									grpAdvanced.add(caseForcerDAR);
+									caseForcerDAR.setLocation(7, casePreserveMetadata.getLocation().y + 17);
+									grpAdvanced.add(comboDAR);							
+									comboDAR.setLocation(caseForcerDAR.getLocation().x + caseForcerDAR.getWidth() + 4, caseForcerDAR.getLocation().y + 3);
+									caseCreateOPATOM.setLocation(7, caseForcerDAR.getLocation().y + 17);
+									caseCreateOPATOM.setEnabled(true);
 									grpAdvanced.add(caseCreateOPATOM);						
 									lblOPATOM.setLocation(caseCreateOPATOM.getLocation().x + caseCreateOPATOM.getWidth() + 4, caseCreateOPATOM.getLocation().y + 3);
 									grpAdvanced.add(lblOPATOM);
 									lblCreateOPATOM.setLocation(lblOPATOM.getX() + lblOPATOM.getWidth() + 4, caseCreateOPATOM.getLocation().y);
+									lblCreateOPATOM.setEnabled(true);
 									grpAdvanced.add(lblCreateOPATOM);	
 								}
 								
@@ -12997,7 +13296,7 @@ public class Shutter {
 							
 							
 							
-						} else if ("WAV".equals(function) || "AIFF".equals(function) || "FLAC".equals(function) || "MP3".equals(function) || "AAC".equals(function) || "AC3".equals(function) || "OPUS".equals(function) || "OGG".equals(function) || "Dolby Digital Plus".equals(function) || "Dolby TrueHD".equals(function)) {
+						} else if ("WAV".equals(function) || "AIFF".equals(function) || "FLAC".equals(function) || "ALAC".equals(function) || "MP3".equals(function) || "AAC".equals(function) || "AC3".equals(function) || "OPUS".equals(function) || "OGG".equals(function) || "Dolby Digital Plus".equals(function) || "Dolby TrueHD".equals(function)) {
 										
 							if (action)
 							{
@@ -13171,7 +13470,9 @@ public class Shutter {
 							grpResolution.add(comboRotate);
 							grpResolution.add(caseMiror);
 							grpResolution.add(caseForcerDAR);
-							grpResolution.add(comboDAR);
+							caseForcerDAR.setLocation(7, caseRotate.getLocation().y + caseRotate.getHeight());
+							grpResolution.add(comboDAR);							
+							comboDAR.setLocation(caseForcerDAR.getLocation().x + caseForcerDAR.getWidth() + 4, caseForcerDAR.getLocation().y + 3);
 							
 							if (comboResolution.getSelectedItem().toString().equals(language.getProperty("source")))
 							{
@@ -13194,10 +13495,10 @@ public class Shutter {
 							}
 							else
 							{
-								if (comboResolution.getItemCount() != 14)
+								if (comboResolution.getItemCount() != 19)
 								{
 									comboResolution.setModel(new DefaultComboBoxModel<String>(new String[] { language.getProperty("source"), "4096x2160", "3840x2160", "1920x1080",
-											"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "50%", "25%" }));
+											"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "3840:auto", "1920:auto", "auto:2160", "auto:1080", "auto:720", "50%", "25%" }));
 									iconTVResolution.setLocation(comboResolution.getX() + comboResolution.getWidth() + 9, 21);
 								}
 							}							
@@ -13374,7 +13675,9 @@ public class Shutter {
 							grpResolution.add(comboRotate);
 							grpResolution.add(caseMiror);
 							grpResolution.add(caseForcerDAR);
-							grpResolution.add(comboDAR);
+							caseForcerDAR.setLocation(7, caseRotate.getLocation().y + caseRotate.getHeight());
+							grpResolution.add(comboDAR);							
+							comboDAR.setLocation(caseForcerDAR.getLocation().x + caseForcerDAR.getWidth() + 4, caseForcerDAR.getLocation().y + 3);
 
 							if (comboResolution.getSelectedItem().toString().equals(language.getProperty("source")))
 							{
@@ -13397,10 +13700,10 @@ public class Shutter {
 							}
 							else
 							{
-								if (comboResolution.getItemCount() != 14)
+								if (comboResolution.getItemCount() != 19)
 								{
 									comboResolution.setModel(new DefaultComboBoxModel<String>(new String[] { language.getProperty("source"), "4096x2160", "3840x2160", "1920x1080",
-											"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "50%", "25%" }));
+											"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "3840:auto", "1920:auto", "auto:2160", "auto:1080", "auto:720", "50%", "25%" }));
 									iconTVResolution.setLocation(comboResolution.getX() + comboResolution.getWidth() + 9, 21);
 								}
 							}
@@ -13702,12 +14005,14 @@ public class Shutter {
 							grpResolution.add(comboRotate);
 							grpResolution.add(caseMiror);
 							grpResolution.add(caseForcerDAR);
-							grpResolution.add(comboDAR);
+							caseForcerDAR.setLocation(7, caseRotate.getLocation().y + caseRotate.getHeight());
+							grpResolution.add(comboDAR);							
+							comboDAR.setLocation(caseForcerDAR.getLocation().x + caseForcerDAR.getWidth() + 4, caseForcerDAR.getLocation().y + 3);
 							
-							if (comboResolution.getItemCount() != 14)
+							if (comboResolution.getItemCount() != 19)
 							{
 								comboResolution.setModel(new DefaultComboBoxModel<String>(new String[] { language.getProperty("source"), "4096x2160", "3840x2160", "1920x1080",
-										"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "50%", "25%" }));
+										"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "3840:auto", "1920:auto", "auto:2160", "auto:1080", "auto:720", "50%", "25%" }));
 								iconTVResolution.setLocation(comboResolution.getX() + comboResolution.getWidth() + 9, 21);
 							}
 							
@@ -13732,9 +14037,9 @@ public class Shutter {
 							//grpSetAudio
 							grpSetAudio.removeAll();
 							grpSetAudio.add(caseChangeAudioCodec);
-							if (comboAudioCodec.getItemCount() != 11 || comboAudioCodec.getModel().getElementAt(0).equals("AAC") == false)
+							if (comboAudioCodec.getItemCount() != 13 || comboAudioCodec.getModel().getElementAt(0).equals("AAC") == false)
 							{
-								comboAudioCodec.setModel(new DefaultComboBoxModel<String>(new String[] {"AAC", "MP3", "AC3", "OPUS", "FLAC", "Dolby Digital Plus", "PCM 16Bits", "PCM 24Bits", "PCM 32Bits", language.getProperty("codecCopy"), language.getProperty("noAudio") }));
+								comboAudioCodec.setModel(new DefaultComboBoxModel<String>(new String[] {"AAC", "MP3", "AC3", "OPUS", "FLAC", "PCM 16Bits", "PCM 24Bits", "PCM 32Bits", "ALAC 16Bits", "ALAC 24Bits", "Dolby Digital Plus", language.getProperty("codecCopy"), language.getProperty("noAudio") }));
 								comboAudioCodec.setSelectedIndex(0);
 								caseChangeAudioCodec.setSelected(true);
 								comboAudioCodec.setEnabled(true);
@@ -13982,12 +14287,14 @@ public class Shutter {
 							grpResolution.add(comboRotate);
 							grpResolution.add(caseMiror);
 							grpResolution.add(caseForcerDAR);
-							grpResolution.add(comboDAR);
+							caseForcerDAR.setLocation(7, caseRotate.getLocation().y + caseRotate.getHeight());
+							grpResolution.add(comboDAR);							
+							comboDAR.setLocation(caseForcerDAR.getLocation().x + caseForcerDAR.getWidth() + 4, caseForcerDAR.getLocation().y + 3);
 							
-							if (comboResolution.getItemCount() != 14)
+							if (comboResolution.getItemCount() != 19)
 							{
 								comboResolution.setModel(new DefaultComboBoxModel<String>(new String[] { language.getProperty("source"), "4096x2160", "3840x2160", "1920x1080",
-										"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "50%", "25%" }));
+										"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "3840:auto", "1920:auto", "auto:2160", "auto:1080", "auto:720", "50%", "25%" }));
 								iconTVResolution.setLocation(comboResolution.getX() + comboResolution.getWidth() + 9, 21);
 							}
 							
@@ -14424,12 +14731,14 @@ public class Shutter {
 								grpResolution.add(comboRotate);
 								grpResolution.add(caseMiror);
 								grpResolution.add(caseForcerDAR);
-								grpResolution.add(comboDAR);
+								caseForcerDAR.setLocation(7, caseRotate.getLocation().y + caseRotate.getHeight());
+								grpResolution.add(comboDAR);							
+								comboDAR.setLocation(caseForcerDAR.getLocation().x + caseForcerDAR.getWidth() + 4, caseForcerDAR.getLocation().y + 3);
 								
-								if (comboResolution.getItemCount() != 14)
+								if (comboResolution.getItemCount() != 19)
 								{
 									comboResolution.setModel(new DefaultComboBoxModel<String>(new String[] { language.getProperty("source"), "4096x2160", "3840x2160", "1920x1080",
-											"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "50%", "25%" }));
+											"1440x1080", "1280x720", "1024x768", "1024x576", "854x480", "720x576", "640x360", "320x180", "3840:auto", "1920:auto", "auto:2160", "auto:1080", "auto:720", "50%", "25%" }));
 									iconTVResolution.setLocation(comboResolution.getX() + comboResolution.getWidth() + 9, 21);
 								}
 								
@@ -14594,7 +14903,7 @@ public class Shutter {
 							if (comboResolution.getItemCount() != 26)
 							{
 								comboResolution.setModel(new DefaultComboBoxModel<String>(new String[] { language.getProperty("source"), "2:1", "4:1", "8:1", "16:1",
-										"4096:auto", "1920:auto", "1280:auto", "auto:480", "auto:360",
+										"3840:auto", "1920:auto", "auto:2160", "auto:1080", "auto:720",
 										"4096x2160", "3840x2160", "1920x1080", "1440x1080", "1280x720", "1024x768", "1024x576", "1000x1000",
 										"854x480", "720x576", "640x360", "500x500", "320x180", "200x200", "100x100", "50x50" }));
 								iconTVResolution.setLocation(comboResolution.getX() + comboResolution.getWidth() + 9, 21);
@@ -14602,17 +14911,58 @@ public class Shutter {
 							
 							iconTVResolution.setBounds(comboResolution.getX() + comboResolution.getWidth() + 9, 21, 16, 16);	
 							
-							// Ajout de la quality pour l'extension .webp & .avif
+							// Ajout de la quality pour l'extension .webp & .avif & .tif
 							if (comboFilter.getSelectedItem().toString().equals(".webp") || comboFilter.getSelectedItem().toString().equals(".avif"))
+							{							
+								if (comboImageOption.getItemAt(0).equals("100%") == false)
+								{
+									comboImageOption.setModel(new DefaultComboBoxModel<String>(new String[] { "100%","95%","90%","85%","80%","75%","70%","65%","60%","55%","50%","45%","40%","35%","30%","25%","20%","15%","10%","5%","0%" }));	
+								}
+								comboImageOption.setLocation(lblImageQuality.getX() + lblImageQuality.getWidth(), lblImageQuality.getLocation().y);
+								comboImageOption.setSize(50, 16);
+								grpResolution.add(lblImageQuality);											
+								grpResolution.add(comboImageOption);
+								comboImageOption.repaint();
+							}
+							else if (comboFilter.getSelectedItem().toString().equals(".tif"))
 							{
-								grpResolution.add(lblImageQuality);
-								grpResolution.add(comboImageQuality);
+								if (comboImageOption.getItemAt(0).equals("packbits") == false)
+								{
+									comboImageOption.setModel(new DefaultComboBoxModel<String>(new String[] { "packbits", "raw", "lzw", "deflate" }));
+								}
+								comboImageOption.setLocation(iconTVResolution.getWidth() + iconTVResolution.getLocation().x + 8, lblImageQuality.getLocation().y);
+								comboImageOption.setSize(90, 16);
+								grpResolution.remove(lblImageQuality);
+								grpResolution.add(comboImageOption);
+								comboImageOption.repaint();
+							}
+							else if (comboFilter.getSelectedItem().toString().equals(".gif"))
+							{
+								if (comboImageOption.getItemAt(0).equals("15 " + Shutter.language.getProperty("fps")) == false)
+								{
+									String fps[] = new String[10];
+									int a = 0;
+									for (int f = 15 ; f < 25 ; f++)
+									{
+										fps[a] = f + " " + Shutter.language.getProperty("fps");
+										a++; 
+									}
+									
+									comboImageOption.setModel(new DefaultComboBoxModel<String>(fps));
+								}
+								comboImageOption.setLocation(iconTVResolution.getWidth() + iconTVResolution.getLocation().x + 8, lblImageQuality.getLocation().y);
+								comboImageOption.setSize(90, 16);
+								grpResolution.remove(lblImageQuality);
+								grpResolution.add(comboImageOption);
+								comboImageOption.repaint();
 							}
 							else
 							{
 								grpResolution.remove(lblImageQuality);
-								grpResolution.remove(comboImageQuality);
+								grpResolution.remove(comboImageOption);
 							}
+							
+							grpResolution.repaint();
 						
 							
 							// lblInterpretation location
@@ -14622,7 +14972,7 @@ public class Shutter {
 							grpResolution.add(comboInterpret);							
 							lblIsInterpret.setLocation(comboInterpret.getX() + comboInterpret.getWidth() + 5, lblInterpretation.getLocation().y - 1);
 							grpResolution.add(lblIsInterpret);	
-							if (getLanguage.equals(new Locale("ru").getDisplayLanguage()) || getLanguage.equals(new Locale("uk").getDisplayLanguage()) || getLanguage.equals(new Locale("vi").getDisplayLanguage()))
+							if (getLanguage.equals(Locale.of("ru").getDisplayLanguage()) || getLanguage.equals(Locale.of("uk").getDisplayLanguage()) || getLanguage.equals(Locale.of("vi").getDisplayLanguage()))
 							{
 								iconTVInterpret.setLocation(comboInterpret.getX() + comboInterpret.getWidth() + 5, lblIsInterpret.getY() + 1);
 							}
@@ -14801,7 +15151,7 @@ public class Shutter {
 				lblFilter.setLocation(165, 23);
 				lblFilter.setIcon(new FlatSVGIcon("contents/arrow.svg", 30, 30));
 				
-				final String types[] = {"23,976 " + Shutter.language.getProperty("fps"), "24 " + Shutter.language.getProperty("fps"), "25 " + Shutter.language.getProperty("fps"), "29,97 " + Shutter.language.getProperty("fps"), "30 " + Shutter.language.getProperty("fps"), "48 " + Shutter.language.getProperty("fps"), "50 " + Shutter.language.getProperty("fps"), "59,94 " + Shutter.language.getProperty("fps"), "60 " + Shutter.language.getProperty("fps") };				
+				final String types[] = {"23,98 " + Shutter.language.getProperty("fps"), "24 " + Shutter.language.getProperty("fps"), "25 " + Shutter.language.getProperty("fps"), "29,97 " + Shutter.language.getProperty("fps"), "30 " + Shutter.language.getProperty("fps"), "48 " + Shutter.language.getProperty("fps"), "50 " + Shutter.language.getProperty("fps"), "59,94 " + Shutter.language.getProperty("fps"), "60 " + Shutter.language.getProperty("fps") };				
 				final DefaultComboBoxModel<Object> model = new DefaultComboBoxModel<Object>(types);
 				comboFilter.setModel(model);
 				comboFilter.setSelectedIndex(2);
@@ -14945,11 +15295,11 @@ public class Shutter {
 				
 				String types[] = { "16 Bits", "24 Bits", "32 Bits", "32 Float" };
 				DefaultComboBoxModel<Object> model = new DefaultComboBoxModel<Object>(types);
-				if (model.getElementAt(0).equals(comboFilter.getModel().getElementAt(0)) == false) {
+				if (model.getElementAt(0).equals(comboFilter.getModel().getElementAt(0)) == false || comboFilter.getModel().getSize() != 4) {
 					comboFilter.setModel(model);
 					comboFilter.setSelectedIndex(0);
 				}
-
+				
 			} else if (comboFonctions.getSelectedItem().toString().equals("FLAC")) {
 
 				lblFilter.setText("Comp.:");
@@ -14965,7 +15315,22 @@ public class Shutter {
 					comboFilter.setSelectedIndex(5);
 				}
 				
-			} else if (comboFonctions.getSelectedItem().toString().equals("MP3")
+			} else if (comboFonctions.getSelectedItem().toString().equals("ALAC")) {
+
+				lblFilter.setText(" ");	
+				lblFilter.setVisible(true);
+				comboFilter.setVisible(true);
+				lblFilter.setLocation(165, 23);
+				lblFilter.setIcon(new FlatSVGIcon("contents/arrow.svg", 30, 30));
+				
+				String types[] = { "16 Bits", "24 Bits" };
+				DefaultComboBoxModel<Object> model = new DefaultComboBoxModel<Object>(types);
+				if (model.getElementAt(0).equals(comboFilter.getModel().getElementAt(0)) == false || comboFilter.getModel().getSize() != 2) {
+					comboFilter.setModel(model);
+					comboFilter.setSelectedIndex(0);
+				}
+
+			}  else if (comboFonctions.getSelectedItem().toString().equals("MP3")
 					|| comboFonctions.getSelectedItem().toString().equals("AAC")
 					|| comboFonctions.getSelectedItem().toString().equals("AC3")
 					|| comboFonctions.getSelectedItem().toString().equals("OPUS")
@@ -15181,7 +15546,7 @@ public class Shutter {
 				lblFilter.setLocation(165, 23);
 				lblFilter.setIcon(new FlatSVGIcon("contents/arrow.svg", 30, 30));
 				
-				String types[] = { ".png", ".tif", ".tga", ".dpx", ".exr", ".bmp", ".ico", ".webp", ".avif" };
+				String types[] = { ".png", ".tif", ".tga", ".dpx", ".exr", ".webp", ".avif",".bmp", ".ico", ".gif" };
 				DefaultComboBoxModel<Object> model = new DefaultComboBoxModel<Object>(types);
 				if (model.getElementAt(0).equals(comboFilter.getModel().getElementAt(0)) == false) {
 					comboFilter.setModel(model);
@@ -15235,7 +15600,7 @@ public class Shutter {
 		try {
 			//Affichage des titres
 			Font tabFont = new Font(montserratFont, Font.PLAIN, 11);		
-			if (getLanguage.equals(new Locale("en").getDisplayLanguage()))
+			if (getLanguage.equals(Locale.of("en").getDisplayLanguage()))
 				tabFont = new Font(montserratFont, Font.PLAIN, 10);		
 			
 			JLabel output = new JLabel(language.getProperty("output"));
@@ -15535,7 +15900,7 @@ public class Shutter {
 		}		
 		
 		//.webp .avif
-		comboImageQuality.setEnabled(true);
+		comboImageOption.setEnabled(true);
 		
 		if (caseCreateSequence.isSelected())
 			comboInterpret.setEnabled(true);
@@ -15860,8 +16225,11 @@ public class Shutter {
 		{
 			RenderQueue.tableRow.setRowCount(0);
 		}
-						
-		enableAll();
+		
+		if (scanIsRunning == false)
+		{
+			enableAll();
+		}
 		Utils.yesToAll = false;
 		Utils.noToAll = false;
 
@@ -15903,6 +16271,7 @@ public class Shutter {
 			liste.clear();
 		
 		Thread thread = new Thread(new Runnable() {
+			@SuppressWarnings("deprecation")
 			public void run() {
 				
 				do
@@ -16045,10 +16414,9 @@ class ListeFileTransferHandler extends TransferHandler {
 		for (int i = 0; i < arg1.length; i++)
 		{
 			DataFlavor flavor = arg1[i];
-			if (flavor.equals(DataFlavor.javaFileListFlavor) && Shutter.scanIsRunning == false && Shutter.inputDeviceIsRunning == false
+			if (flavor.equals(DataFlavor.javaFileListFlavor) && Shutter.inputDeviceIsRunning == false
 			&& Shutter.comboFonctions.getSelectedItem().equals("DVD Rip") == false && Shutter.comboFonctions.getSelectedItem().equals(Shutter.language.getProperty("functionWeb")) == false)
 			{
-
 				Shutter.fileList.setBorder(BorderFactory.createLineBorder(Utils.themeColor, 1));
 				return true;
 			}
@@ -16059,11 +16427,14 @@ class ListeFileTransferHandler extends TransferHandler {
 	public boolean importData(JComponent comp, Transferable t) {
 
 		DataFlavor[] flavors = t.getTransferDataFlavors();
-		for (int i = 0; i < flavors.length; i++) {
+		
+		for (int i = 0; i < flavors.length; i++)
+		{
 			DataFlavor flavor = flavors[i];
+			
 			try {
-				if (flavor.equals(DataFlavor.javaFileListFlavor) && Shutter.scanIsRunning == false
-				&& Shutter.comboFonctions.getSelectedItem().equals("DVD Rip") == false && Shutter.comboFonctions.getSelectedItem().equals(Shutter.language.getProperty("functionWeb")) == false) {
+				
+				if (flavor.equals(DataFlavor.javaFileListFlavor) && Shutter.comboFonctions.getSelectedItem().equals("DVD Rip") == false && Shutter.comboFonctions.getSelectedItem().equals(Shutter.language.getProperty("functionWeb")) == false) {
 
 					List<?> l = (List<?>) t.getTransferData(DataFlavor.javaFileListFlavor);
 					Iterator<?> iter = l.iterator();
@@ -16077,7 +16448,26 @@ class ListeFileTransferHandler extends TransferHandler {
 						
 						if (Shutter.scan.getText().equals(Shutter.language.getProperty("menuItemStopScan")))
 						{
-							if (file.isFile())
+							if (file.isDirectory())
+							{								
+								if (file.toString().contains("completed") == false && file.toString().contains("error") == false)
+								{
+									boolean folderExists = false;
+									for (int f = 0 ; f < Shutter.liste.getSize() ; f++)
+									{							
+										if (Shutter.liste.getElementAt(f).equals(file.toString()))
+										{
+											folderExists = true;
+										}
+									}
+									
+									if (folderExists == false)
+									{
+										Utils.findDirectories(file.toString());						
+									}
+								}
+							}
+							else 
 								file = new File(file.getParent());
 								
 							if (System.getProperty("os.name").contains("Mac") || System.getProperty("os.name").contains("Linux"))
@@ -16088,16 +16478,17 @@ class ListeFileTransferHandler extends TransferHandler {
 							Shutter.addToList.setVisible(false);
 							Shutter.lblFiles.setText(Utils.filesNumber());
 							
-							if (file != null) {
-								if (Shutter.caseChangeFolder1.isSelected()) {
+							if (file != null) 
+							{
+								if (Shutter.caseChangeFolder1.isSelected()) 
+								{
 									Shutter.scanIsRunning = true;
 									Shutter.changeFilters();
 								} 
 								else
 									JOptionPane.showMessageDialog(Shutter.frame, Shutter.language.getProperty("dragFolderToDestination"), Shutter.language.getProperty("chooseDestinationFolder"), JOptionPane.INFORMATION_MESSAGE);				
 							}
-														
-							break;
+
 						}
 						else
 						{
@@ -16134,15 +16525,13 @@ class ListeFileTransferHandler extends TransferHandler {
 										
 										if (file.getCanonicalPath().toString().contains("\"") || file.getCanonicalPath().toString().contains("\'") || file.getName().contains("/") || file.getName().contains("\\"))
 										{
-											Object[] options = { Shutter.language.getProperty("btnAdd"), Shutter.language.getProperty("btnNext"), Shutter.language.getProperty("btnCancel") };
-											
-											int q = JOptionPane.showOptionDialog(Shutter.frame, file.getCanonicalPath().toString() + System.lineSeparator() + Shutter.language.getProperty("invalidCharacter"), Shutter.language.getProperty("import"),
-													JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
-										
-											if (q == 1) //Next
-												continue;
-											else if (q == 2) //Cancel
-												break;
+											if (FunctionUtils.allowsInvalidCharacters == false) 
+											{
+												JOptionPane.showConfirmDialog(Shutter.frame, file.getAbsoluteFile().toString() + System.lineSeparator() + Shutter.language.getProperty("invalidCharacter"), Shutter.language.getProperty("import"),
+												JOptionPane.PLAIN_MESSAGE, JOptionPane.WARNING_MESSAGE);
+												
+												FunctionUtils.allowsInvalidCharacters = true;
+											}
 										}
 										
 										Shutter.liste.addElement(file.getCanonicalPath().toString());	
@@ -16170,7 +16559,7 @@ class ListeFileTransferHandler extends TransferHandler {
 					case "OGV":
 					case "MJPEG":
 					case "Xvid":
-					case "Blu-ray":
+					case "Blu-ray":											
 						FFPROBE.setLength();
 						break;
 					}

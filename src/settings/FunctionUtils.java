@@ -64,6 +64,7 @@ import library.XPDF;
 public class FunctionUtils extends Shutter {
 
 	public static int completed;
+	public static boolean allowsInvalidCharacters = false;
 	public static boolean yesToAll = false;
 	public static boolean noToAll = false;
 	public static File OPAtomFolder;
@@ -106,7 +107,7 @@ public class FunctionUtils extends Shutter {
 			 while (FFPROBE.isRunning);
 			 
 			//Check GPU
-			FFMPEG.checkGPUCapabilities(file.toString());
+			FFMPEG.checkGPUCapabilities(file.toString(), false);
 			 
 			if (analyzeError(file.toString()))
 				return false;
@@ -225,8 +226,9 @@ public class FunctionUtils extends Shutter {
 	public static File setInputFile(File input) {
 		
         if (Shutter.scanIsRunning)
-        {
-        	input = watchFolder(input.toString());
+        {        	
+        	input = watchFolder();
+        	
         	if (input != null)
         		btnStart.setEnabled(true);
         	else
@@ -243,8 +245,8 @@ public class FunctionUtils extends Shutter {
         return input;
 	}
 	
-	public static File watchFolder(String folder) {
-		
+	public static File watchFolder() {
+			
 		progressBar1.setIndeterminate(true);
 		lblCurrentEncoding.setText(language.getProperty("waitingFiles"));
 		tempsRestant.setVisible(false);
@@ -253,46 +255,61 @@ public class FunctionUtils extends Shutter {
 
 		File actualScanningFile = null;
 		do {
-			File dir = new File(folder);
-			btnStart.setEnabled(false);
 
-			for (File file : dir.listFiles()) // Récupère chaque fichier du dossier
-			{
-				if (file.isHidden() || file.isFile() == false)
-				{
-					continue;
-				}
-				else if (Settings.btnExclude.isSelected())
+			if (actualScanningFile == null)
+			{	
+				for (int i = 0 ; i < liste.getSize() ; i ++)
 				{							
-					boolean allowed = true;
-					for (String excludeExt : Settings.txtExclude.getText().split("\\*"))
-					{
-						int s = file.toString().lastIndexOf('.');
-						String ext = file.toString().substring(s);
+					File dir = new File(liste.getElementAt(i));
+					btnStart.setEnabled(false);
+
+					for (File file : dir.listFiles())
+					{		
+						if (file.isDirectory() == false && file.isHidden() == false && file.getName().equals("completed") == false && file.getName().equals("error") == false)
+						{		
+							if (file.getName().contains("."))
+							{					
+								boolean allowed = true;
+								if (Settings.btnExclude.isSelected())
+								{
+									for (String excludeExt : Settings.txtExclude.getText().split("\\*"))
+									{
+										int s = file.toString().lastIndexOf('.');
+										String ext = file.toString().substring(s);
+										
+										if (excludeExt.contains(".") && ext.toLowerCase().equals(excludeExt.replace(",", "").toLowerCase()))
+											allowed = false;
+									}
+									
+									if (allowed == false)
+									{
+										continue;//Next
+									}
+								}
+							}
+						}
+						else
+						{
+							continue;
+						}
+
+						actualScanningFile = file;
+
+						//While a file is copied
+						progressBar1.setIndeterminate(true);
+										
+						if (waitFileCompleted(file) == false)
+							return null;
+
+						if (actualScanningFile != null)
+							return actualScanningFile;
 						
-						if (excludeExt.contains(".") && ext.toLowerCase().equals(excludeExt.replace(",", "").toLowerCase()))
-							allowed = false;
 					}
-					
-					if (allowed == false)
-						continue;
 				}
-
-				actualScanningFile = file;
-
-				// Lorque un fichier est entrain d'être copié
-				progressBar1.setIndeterminate(true);
-				
-				if (waitFileCompleted(file) == false)
-					return null;
-
-				if (actualScanningFile != null)
-					return actualScanningFile;
-				
-			} // End for
+			}
+									
 		} while (scanIsRunning);
-
-		// Action de fin
+						
 		progressBar1.setIndeterminate(false);
 		enableAll();
 		btnEmptyList.doClick();
@@ -300,44 +317,33 @@ public class FunctionUtils extends Shutter {
 		return null;
 	}
 
-	public static void moveScannedFiles(String file)
+	public static void moveScannedFiles(File file)
 	{
-		File folder = new File(liste.getElementAt(0) + "completed");
+		File folder = new File(file.getParent() + "/completed");
 		
 		//Si erreur
 		if (FFMPEG.error || cancelled)
-			folder = new File(liste.getElementAt(0) + "error");
+			folder = new File(file.getParent() + "/error");
 		
 		if (folder.exists() == false)
 			folder.mkdir();
 		
-		File fileToMove = new File(folder + "/" + file);
-		
-		// Récupère le fichier du dossier
-		for (int i = 0 ; i < liste.getSize() ; i++)
-		{						
-			File getFile = new File(liste.getElementAt(i) + file);
+		File fileToMove = new File(folder + "/" + file.getName());
+				
+		if (fileToMove.exists())
+		{
+			int n = 1;
 			
-			if (getFile.exists()) //Si le fichier correspond on le déplace dans le dossier
-			{
-					if (fileToMove.exists()) //Nom identique à la source
-					{
-						int n = 1;
-						
-						String ext =  file.substring(file.lastIndexOf("."));
-						
-						do {
-							fileToMove = new File(folder + "/" + file.replace(ext, "") + "_" + n + ext);
-							n++;
-						} while (fileToMove.exists());
-					}
-					
-					//Déplacement du fichier
-					getFile.renameTo(fileToMove);
-					
-					break;	
-			}
+			String ext =  file.getName().substring(file.getName().lastIndexOf("."));
+			
+			do {
+				fileToMove = new File(folder + "/" + file.getName().replace(ext, "") + "_" + n + ext);
+				n++;
+			} while (fileToMove.exists());
 		}
+		
+		//Moving the file to completed folder
+		file.renameTo(fileToMove);	
 	}
 	
 	public static String completedFiles(int number) {
@@ -641,7 +647,7 @@ public class FunctionUtils extends Shutter {
 		bestBitrateMode = false;
 		goodBitrateMode = false;
 		autoBitrateMode = false;
-		
+				
 		if (debitVideo.getSelectedItem().equals(language.getProperty("lblBest").toLowerCase()) || debitVideo.getSelectedItem().equals(language.getProperty("lblGood").toLowerCase()) || debitVideo.getSelectedItem().equals("auto"))
 		{			
 			//Compression ratio
@@ -677,6 +683,7 @@ public class FunctionUtils extends Shutter {
 			int pixels = FFPROBE.imageWidth * FFPROBE.imageHeight;
 			if (comboResolution.getSelectedItem().toString().equals(language.getProperty("source")) == false)
 			{  
+				String i[] = FFPROBE.imageResolution.split("x");
 				String o[] = FFPROBE.imageResolution.split("x");
 							
 				if (comboResolution.getSelectedItem().toString().contains("%"))
@@ -690,10 +697,29 @@ public class FunctionUtils extends Shutter {
 				{
 					o = comboResolution.getSelectedItem().toString().split("x");
 				}
-				         	
+				else if (comboResolution.getSelectedItem().toString().contains(":"))
+				{
+					o = comboResolution.getSelectedItem().toString().replace("auto", "1").split(":");
+					
+					int iw = Integer.parseInt(i[0]);
+		        	int ih = Integer.parseInt(i[1]);          	
+		        	int ow = Integer.parseInt(o[0]);
+		        	int oh = Integer.parseInt(o[1]);        	
+		        	float ir = (float) iw / ih;
+							        	
+					if (o[0].toString().equals("1")) // = auto
+					{
+						o[0] = String.valueOf((int) Math.round((float) oh * ir));
+					}
+	        		else
+	        		{
+	        			o[1] = String.valueOf((int) Math.round((float) ow / ir));
+	        		}
+				}
+				
 	        	int ow = Integer.parseInt(o[0]);
-	        	int oh = Integer.parseInt(o[1]);        	
-
+	        	int oh = Integer.parseInt(o[1]);	        	
+	        		        	
 				pixels = ow * oh;					
 			}		
 			
@@ -803,7 +829,7 @@ public class FunctionUtils extends Shutter {
 			else if (c instanceof JComboBox && addSub)
 			{
 	        	String[] languages = Locale.getISOLanguages();			
-				Locale loc = new Locale(languages[((JComboBox) c).getSelectedIndex()]);
+				Locale loc = Locale.of(languages[((JComboBox) c).getSelectedIndex()]);
 				
 				if (VideoPlayer.caseAddWatermark.isSelected())
 				{
@@ -955,7 +981,7 @@ public class FunctionUtils extends Shutter {
         	}
         	else if (comboFilter.getSelectedItem().toString().equals(".mkv"))
         	{
-        		if (FFPROBE.subtitlesCodec != "" && FFPROBE.subtitlesCodec.equals("hdmv_pgs_subtitle"))
+        		if (FFPROBE.subtitlesCodec != "" && (FFPROBE.subtitlesCodec.equals("hdmv_pgs_subtitle") || FFPROBE.subtitlesCodec.equals("ass")))
         		{
         			filterComplex += " -c:s copy -map s?";
         		}
