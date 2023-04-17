@@ -1,6 +1,7 @@
 JRE/
 src/build/
-Library/
 .idea/
 out/
 out_jar/
+*.mov
+*.mp4
