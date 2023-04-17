@@ -1,0 +1,6 @@
+Show console: right-click progress status, Show Console
+
+1. +Chunks count = -1
+2. +Threads
+3. Disable auto-update
+4. Update donate button
