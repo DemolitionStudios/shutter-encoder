@@ -1280,7 +1280,7 @@ public class VideoEncoders extends Shutter {
 				if (comboFilter.getSelectedItem().toString().contains("GPU"))
 				{
 					System.out.println("GPU mode");
-					return " -c:v hap -chunks -1";
+					return " -c:v hap -chunks -1 -movflags +use_metadata_tags";
 				}
 				else if (caseChunks.isSelected())
 					return " -c:v hap -chunks " + (chunksSize.getSelectedIndex() + 1);

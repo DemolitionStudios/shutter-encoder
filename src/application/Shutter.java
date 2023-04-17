@@ -15005,7 +15005,7 @@ public class Shutter {
 				lblFilter.setIcon(new FlatSVGIcon("contents/arrow.svg", 30, 30));
 				
 				DefaultComboBoxModel<Object> model;
-				String types[] = { "Standard", "Alpha", "Q", "R" };//, "Standard (GDeflate GPU)", "Alpha (GDeflate GPU)", "Q (GDeflate GPU)", "R (GDeflate GPU)", "Standard (Snappy GPU)", "Alpha (Snappy GPU)", "Q (Snappy GPU)", "R (Snappy GPU)" };
+				String types[] = { "Standard", "Alpha", "Q", "R", "Standard (GDeflate GPU)", "Alpha (GDeflate GPU)", "Q (GDeflate GPU)", "R (GDeflate GPU)" };// "Standard (Snappy GPU)", "Alpha (Snappy GPU)", "Q (Snappy GPU)", "R (Snappy GPU)" };
 				model = new DefaultComboBoxModel<Object>(types);
 				if (model.getElementAt(0).equals(comboFilter.getModel().getElementAt(0)) == false) {
 					comboFilter.setModel(model);
