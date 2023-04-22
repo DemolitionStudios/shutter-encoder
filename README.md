@@ -1,23 +1,19 @@
 <img align=left src="https://www.shutterencoder.com/images/icon.png" width="64">
-<h1>Shutter Encoder v17.0</h1>
+<h1>Shutter Encoder Hap Edition v8.0</h1>
 
 ![logo](/SocialBanner.png)
 
-Download required [dependencies](../master/Library/sources.txt) into "Library" folder.
+## Changes compared to the original version
+- Added fast Hap R encoding path
+- Multi-threaded Hap encoding, which is very fast on multi-core CPUs
+- Hap 15% faster compared to the original Shutter Encoder
+- Support for fully GPU based format based on GDeflate compression algorithm - dramatically decreases the CPU usage for Hap, and also 20-40% reduced file size (Unity DX12 only at the moment)
 
-Include [fonts](../master/fonts) with JRE.
+If you find it useful, please donate
 
-I'm using [Java version 20](https://jdk.java.net/20/) built using jlink:
-<code>--compress 0 --strip-debug --no-header-files --no-man-pages --add-modules java.base,java.datatransfer,java.desktop,java.logging,java.security.sasl,java.xml,jdk.crypto.ec --output JRE</code>
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZPFRQ4WS6KDBN)
 
 ## Official website
 
 https://www.shutterencoder.com
 
-### Builds
-
-https://www.shutterencoder.com/en/#downloads
-
-#### Changelog
-
-https://www.shutterencoder.com/changelog.html
