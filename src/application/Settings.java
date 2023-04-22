@@ -1272,11 +1272,9 @@ public class Settings {
 					|| Shutter.getLanguage.equals(Locale.of("it").getDisplayLanguage())
 					|| Shutter.getLanguage.equals(Locale.of("es").getDisplayLanguage()))
 					{
-						Desktop.getDesktop().browse(new URI("https://www.paypal.com/donate/?cmd=_donations&business=paulpacifico974@gmail.com&item_name=Shutter+Encoder&currency_code=EUR"));
+						Desktop.getDesktop().browse(new URI("https://www.paypal.com/donate/?hosted_button_id=ZPFRQ4WS6KDBN"));
 					}
-					else
-						Desktop.getDesktop().browse(new URI("https://www.paypal.com/donate/?cmd=_donations&business=paulpacifico974@gmail.com&item_name=Shutter+Encoder&currency_code=USD"));
-				
+
 				} catch (IOException | URISyntaxException e) {
 				}
 			}
