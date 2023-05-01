@@ -13,6 +13,10 @@ If you find it useful, please donate
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZPFRQ4WS6KDBN)
 
+## Download for Windows
+
+https://github.com/DemolitionStudios/shutter-encoder/releases
+
 ## Official website
 
 https://www.shutterencoder.com
