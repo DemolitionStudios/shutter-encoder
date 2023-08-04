@@ -1290,7 +1290,8 @@ public class VideoEncoders extends Shutter {
 
 				if (comboFilter.getSelectedItem().toString().contains("GPU"))
 				{
-					System.out.println("GPU mode");
+					// TODO: disable chunks selector
+					System.out.println("Hap GPU mode enabled, setting chunks not available");
 					return " -c:v hap -chunks -1 -movflags +use_metadata_tags";
 				}
 				else if (caseChunks.isSelected())
@@ -1584,6 +1585,10 @@ public class VideoEncoders extends Shutter {
 				{
 					return " -format hap_r";
 				}
+				else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (Snappy GPU)"))
+				{
+					return " -format hap_h -threads 1";
+				}
 				else if (comboFilter.getSelectedItem().equals("Standard (GDeflate GPU)"))
 				{
 					return " -compressor gdeflate";
@@ -1599,6 +1604,10 @@ public class VideoEncoders extends Shutter {
 				else if (comboFilter.getSelectedItem().equals("R (GDeflate GPU)"))
 				{
 					return " -format hap_r -compressor gdeflate";
+				}
+				else if (comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+				{
+					return " -format hap_h -threads 1 -compressor gdeflate";
 				}
 
 				break;
