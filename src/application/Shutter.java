@@ -349,12 +349,15 @@ public class Shutter {
 	protected static JCheckBox caseOPATOM;
 	protected static JCheckBox caseAS10;
 	protected static JCheckBox caseChunks;
+	protected static JCheckBox caseHapQuality;
 	protected static JCheckBox caseDRC;
 	protected static JCheckBox caseTruePeak;
 	protected static JComboBox<Object> comboTruePeak;
 	protected static JCheckBox caseLRA;
 	protected static JComboBox<Object> comboLRA;
 	protected static JComboBox<String> chunksSize;
+	protected static JComboBox<String> hapRQuality;
+	protected static JComboBox<String> hapHQuality;
 	protected static JComboBox<String> comboConform;
 	protected static JComboBox<String> comboFPS;
 	protected static JComboBox<String> comboAudioIn;
@@ -3316,6 +3319,12 @@ public class Shutter {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+
+				// For Hap
+				if (comboFonctions.getSelectedItem().toString().equals("HAP"))
+				{
+					changeSections(true);
+				}
 								
 				if (Shutter.lblFilter.isVisible())
 				{
@@ -10392,6 +10401,59 @@ public class Shutter {
 		chunksSize.setEditable(false);
 		chunksSize.setSize(40, 16);
 		
+		caseHapQuality = new JCheckBox(language.getProperty("caseHapQuality"));
+		caseHapQuality.setName("caseHapQuality");
+		caseHapQuality.setFont(new Font(freeSansFont, Font.PLAIN, 12));
+		caseHapQuality.setSize(caseHapQuality.getPreferredSize().width + 4, 23);
+
+		caseHapQuality.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				if (caseHapQuality.isSelected())
+				{
+					if (comboFilter.getSelectedItem().equals("R") || comboFilter.getSelectedItem().equals("R (GDeflate GPU)"))
+					{
+						hapRQuality.setEnabled(true);
+					}
+					else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+					{
+						hapHQuality.setEnabled(true);
+					}
+				}
+				else
+				{
+					hapRQuality.setEnabled(false);
+					hapHQuality.setEnabled(false);
+				}
+
+				Utils.textFieldBackground();
+			}
+
+		});
+
+		hapRQuality = new JComboBox<String>();
+		hapRQuality.setName("hapRQuality");
+		hapRQuality.setEnabled(false);
+		hapRQuality.setMaximumRowCount(3);
+		values = new String[]{ "Speed", "Balanced", "Quality" };
+		hapRQuality.setModel(new DefaultComboBoxModel<String>(values));
+		hapRQuality.setSelectedIndex(0);
+		hapRQuality.setFont(new Font(freeSansFont, Font.PLAIN, 10));
+		hapRQuality.setEditable(false);
+		hapRQuality.setSize(40, 16);
+
+		hapHQuality = new JComboBox<String>();
+		hapHQuality.setName("hapHQuality");
+		hapHQuality.setEnabled(false);
+		hapHQuality.setMaximumRowCount(2);
+		values = new String[]{ "Speed", "Quality" };
+		hapHQuality.setModel(new DefaultComboBoxModel<String>(values));
+		hapHQuality.setSelectedIndex(1);
+		hapHQuality.setFont(new Font(freeSansFont, Font.PLAIN, 10));
+		hapHQuality.setEditable(false);
+		hapHQuality.setSize(40, 16);
+
 		caseDRC = new JCheckBox(language.getProperty("caseDRC"));
 		caseDRC.setName("caseDRC");
 		caseDRC.setFont(new Font(freeSansFont, Font.PLAIN, 12));
@@ -12044,6 +12106,11 @@ public class Shutter {
 				caseChunks.setSelected(false);
 				chunksSize.setEnabled(false);
 				chunksSize.setSelectedIndex(3);
+				caseHapQuality.setSelected(false);
+				hapRQuality.setEnabled(false);
+				hapRQuality.setSelectedIndex(0);
+				hapHQuality.setEnabled(false);
+				hapHQuality.setSelectedIndex(1);
 				caseDRC.setSelected(false);				
 				caseTruePeak.setSelected(false);
 				comboTruePeak.setEnabled(false);
@@ -13619,6 +13686,22 @@ public class Shutter {
 								grpAdvanced.add(chunksSize);
 								casePreserveMetadata.setLocation(7, caseChunks.getLocation().y + 17);
 								grpAdvanced.add(casePreserveMetadata);		
+								if (comboFilter.getSelectedItem().equals("R") || comboFilter.getSelectedItem().equals("R (GDeflate GPU)"))
+								{
+									caseHapQuality.setLocation(7, casePreserveMetadata.getLocation().y + 17);
+									grpAdvanced.add(caseHapQuality);
+									hapRQuality.setLocation(caseHapQuality.getX() + caseHapQuality.getWidth() + 3, caseHapQuality.getY() + 3);
+									hapRQuality.setSize(55, 17);
+									grpAdvanced.add(hapRQuality);
+								}
+								else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+								{
+									caseHapQuality.setLocation(7, casePreserveMetadata.getLocation().y + 17);
+									grpAdvanced.add(caseHapQuality);
+									hapHQuality.setLocation(caseHapQuality.getX() + caseHapQuality.getWidth() + 3, caseHapQuality.getY() + 3);
+									hapHQuality.setSize(55, 17);
+									grpAdvanced.add(hapHQuality);
+								}
 							}
 							else
 							{
@@ -16055,6 +16138,13 @@ public class Shutter {
 		if (caseChunks.isSelected() == false)
 			chunksSize.setEnabled(false);
 		
+
+		if (caseHapQuality.isSelected() == false)
+		{
+			hapRQuality.setEnabled(false);
+			hapHQuality.setEnabled(false);
+		}
+
 		if ((caseAccel.isSelected() || lblVBR.getText().equals("CQ")))
 		{
 			if (lblVBR.getText().equals("CQ") == false)
