@@ -3324,6 +3324,11 @@ public class Shutter {
 				if (comboFonctions.getSelectedItem().toString().equals("HAP"))
 				{
 					changeSections(true);
+					hapRQuality.setSelectedIndex(0);
+					hapHQuality.setSelectedIndex(1);
+					caseHapQuality.setSelected(false);
+					hapRQuality.setEnabled(false);
+					hapHQuality.setEnabled(false);
 				}
 								
 				if (Shutter.lblFilter.isVisible())
@@ -16138,7 +16143,6 @@ public class Shutter {
 		if (caseChunks.isSelected() == false)
 			chunksSize.setEnabled(false);
 		
-
 		if (caseHapQuality.isSelected() == false)
 		{
 			hapRQuality.setEnabled(false);

@@ -1288,17 +1288,31 @@ public class VideoEncoders extends Shutter {
 			
 			case "HAP":
 
+				String result = "";
 				if (comboFilter.getSelectedItem().toString().contains("GPU"))
 				{
 					// TODO: disable chunks selector
 					System.out.println("Hap GPU mode enabled, setting chunks not available");
-					return " -c:v hap -chunks -1 -movflags +use_metadata_tags";
+					result += " -c:v hap -chunks -1 -movflags +use_metadata_tags";
 				}
 				else if (caseChunks.isSelected())
-					return " -c:v hap -chunks " + (chunksSize.getSelectedIndex() + 1);
+					result += " -c:v hap -chunks " + (chunksSize.getSelectedIndex() + 1);
 				else
-					return " -c:v hap -chunks 16";
+					result += " -c:v hap -chunks 16";
 				
+				if (caseHapQuality.isSelected())
+				{
+					if (comboFilter.getSelectedItem().equals("R") || comboFilter.getSelectedItem().equals("R (GDeflate GPU)"))
+					{
+						result += " -texture_quality_hap_r " + hapRQuality.getSelectedIndex(); 
+					}
+					else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+					{
+						result += " -texture_quality_hap_h " + hapHQuality.getSelectedIndex();
+					}
+				}
+				return result;
+
 			case "QT Animation":
 				
 				return " -c:v qtrle";
