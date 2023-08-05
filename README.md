@@ -1,13 +1,14 @@
 <img align=left src="https://www.shutterencoder.com/images/icon.png" width="64">
-<h1>Shutter Encoder Hap Edition v8.0</h1>
+<h1>Shutter Encoder Hap Edition v9.0</h1>
 
 ![logo](/SocialBanner.png)
 
 ## Changes compared to the original version
-- Added fast Hap R encoding path (both RGB and RGBA modes supported - also use for high quality videos with alpha channel)
+- Added fast Hap R encoding path (both RGB and RGBA modes supported - also use for high quality videos with alpha channel, configurable encoding profile - Speed/Balanced/Quality)
+- Added GPU compute shader-based Hap H encoding path (configurable encoding profile - Quality/Speed and input data normalization factor) - can encode HDR .EXR image sequences or videos  
 - Multi-threaded Hap encoding, which is very fast on multi-core CPUs
 - Hap 15% faster compared to the original Shutter Encoder
-- Support for fully GPU based format based on GDeflate compression algorithm - dramatically decreases the CPU usage for Hap, and also 20-40% reduced file size (Unity DX12 only at the moment)
+- Support for fully GPU based format based on GDeflate compression algorithm - dramatically decreases the CPU usage for Hap, and also 20-40% reduced file size (playback is possible only on Unity DX12 at the moment)
 
 If you find it useful, please consider donating to support further development
 
