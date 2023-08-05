@@ -1268,12 +1268,7 @@ public class Settings {
 				
 				try {
 					
-					if (Shutter.getLanguage.equals(Locale.of("fr").getDisplayLanguage())
-					|| Shutter.getLanguage.equals(Locale.of("it").getDisplayLanguage())
-					|| Shutter.getLanguage.equals(Locale.of("es").getDisplayLanguage()))
-					{
-						Desktop.getDesktop().browse(new URI("https://www.paypal.com/donate/?hosted_button_id=ZPFRQ4WS6KDBN"));
-					}
+					Desktop.getDesktop().browse(new URI("https://www.paypal.com/donate/?hosted_button_id=N4T235RD3KGE2"));
 
 				} catch (IOException | URISyntaxException e) {
 				}
