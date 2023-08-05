@@ -1311,6 +1311,15 @@ public class VideoEncoders extends Shutter {
 						result += " -texture_quality_hap_h " + hapHQuality.getSelectedIndex();
 					}
 				}
+				if (caseHapHNormalizationFactor.isSelected())
+				{
+					if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+					{
+						float normalizationFactor = (float) (Float.parseFloat(spinnerHapHNormalizationFactor.getText()));
+						result += " -hap_h_normalization_factor " + normalizationFactor;
+					}					
+				}
+
 				return result;
 
 			case "QT Animation":

@@ -350,6 +350,8 @@ public class Shutter {
 	protected static JCheckBox caseAS10;
 	protected static JCheckBox caseChunks;
 	protected static JCheckBox caseHapQuality;
+	protected static JCheckBox caseHapHNormalizationFactor;
+	protected static JTextField spinnerHapHNormalizationFactor;
 	protected static JCheckBox caseDRC;
 	protected static JCheckBox caseTruePeak;
 	protected static JComboBox<Object> comboTruePeak;
@@ -3329,6 +3331,9 @@ public class Shutter {
 					caseHapQuality.setSelected(false);
 					hapRQuality.setEnabled(false);
 					hapHQuality.setEnabled(false);
+					caseHapHNormalizationFactor.setSelected(false);
+					spinnerHapHNormalizationFactor.setEnabled(false);
+					spinnerHapHNormalizationFactor.setText("1.0");
 				}
 								
 				if (Shutter.lblFilter.isVisible())
@@ -10459,6 +10464,55 @@ public class Shutter {
 		hapHQuality.setEditable(false);
 		hapHQuality.setSize(40, 16);
 
+		caseHapHNormalizationFactor = new JCheckBox(language.getProperty("caseHapHNormalizationFactor"));
+		caseHapHNormalizationFactor.setName("caseHapHNormalizationFactor");
+		caseHapHNormalizationFactor.setFont(new Font(freeSansFont, Font.PLAIN, 12));
+		caseHapHNormalizationFactor.setBounds(7, 16, caseHapHNormalizationFactor.getPreferredSize().width, 23);
+				
+		caseHapHNormalizationFactor.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				if (caseHapHNormalizationFactor.isSelected())
+				{
+					spinnerHapHNormalizationFactor.setEnabled(true);
+				}
+				else
+				{
+					spinnerHapHNormalizationFactor.setEnabled(false);		
+				}		
+				
+				Utils.textFieldBackground();
+			}
+		});
+					
+		spinnerHapHNormalizationFactor = new JTextField("1.0");
+		spinnerHapHNormalizationFactor.setHorizontalAlignment(SwingConstants.CENTER);
+		spinnerHapHNormalizationFactor.setName("spinnerHapHNormalizationFactor");
+		spinnerHapHNormalizationFactor.setEnabled(false);
+		spinnerHapHNormalizationFactor.setFont(new Font(freeSansFont, Font.PLAIN, 11));
+		if (getLanguage.equals(Locale.of("en").getDisplayLanguage()))
+			spinnerHapHNormalizationFactor.setBounds(caseHapHNormalizationFactor.getLocation().x + caseHapHNormalizationFactor.getWidth() + 12, caseHapHNormalizationFactor.getLocation().y + 3, 41, 16);
+		else
+			spinnerHapHNormalizationFactor.setBounds(caseHapHNormalizationFactor.getLocation().x + caseHapHNormalizationFactor.getWidth() + 6, caseHapHNormalizationFactor.getLocation().y + 3, 41, 16);
+		
+		spinnerHapHNormalizationFactor.addKeyListener(new KeyListener() {
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+			}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+				
+			}
+
+			@Override
+			public void keyTyped(KeyEvent e) {
+			}
+			
+		});
+
 		caseDRC = new JCheckBox(language.getProperty("caseDRC"));
 		caseDRC.setName("caseDRC");
 		caseDRC.setFont(new Font(freeSansFont, Font.PLAIN, 12));
@@ -12116,6 +12170,9 @@ public class Shutter {
 				hapRQuality.setSelectedIndex(0);
 				hapHQuality.setEnabled(false);
 				hapHQuality.setSelectedIndex(1);
+				caseHapHNormalizationFactor.setEnabled(false);
+				spinnerHapHNormalizationFactor.setEnabled(false);
+				spinnerHapHNormalizationFactor.setText("1.0");
 				caseDRC.setSelected(false);				
 				caseTruePeak.setSelected(false);
 				comboTruePeak.setEnabled(false);
@@ -13706,6 +13763,12 @@ public class Shutter {
 									hapHQuality.setLocation(caseHapQuality.getX() + caseHapQuality.getWidth() + 3, caseHapQuality.getY() + 3);
 									hapHQuality.setSize(55, 17);
 									grpAdvanced.add(hapHQuality);
+									
+									caseHapHNormalizationFactor.setLocation(7, caseHapQuality.getLocation().y + 17);
+									grpAdvanced.add(caseHapHNormalizationFactor);
+									spinnerHapHNormalizationFactor.setLocation(caseHapHNormalizationFactor.getX() + caseHapHNormalizationFactor.getWidth() + 3, caseHapHNormalizationFactor.getY() + 3);
+									// spinnerHapHNormalizationFactor.setSize(55, 17);
+									grpAdvanced.add(spinnerHapHNormalizationFactor);
 								}
 							}
 							else
@@ -16148,6 +16211,9 @@ public class Shutter {
 			hapRQuality.setEnabled(false);
 			hapHQuality.setEnabled(false);
 		}
+
+		if (caseHapHNormalizationFactor.isSelected() == false)
+			spinnerHapHNormalizationFactor.setEnabled(false);
 
 		if ((caseAccel.isSelected() || lblVBR.getText().equals("CQ")))
 		{
