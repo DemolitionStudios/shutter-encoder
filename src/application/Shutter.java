@@ -351,6 +351,7 @@ public class Shutter {
 	protected static JCheckBox caseChunks;
 	protected static JCheckBox caseHapQuality;
 	protected static JCheckBox caseHapHNormalizationFactor;
+	protected static JCheckBox caseHapHApplyExrSRGBConversion;
 	protected static JTextField spinnerHapHNormalizationFactor;
 	protected static JCheckBox caseDRC;
 	protected static JCheckBox caseTruePeak;
@@ -3334,6 +3335,7 @@ public class Shutter {
 					caseHapHNormalizationFactor.setSelected(false);
 					spinnerHapHNormalizationFactor.setEnabled(false);
 					spinnerHapHNormalizationFactor.setText("1.0");
+					caseHapHApplyExrSRGBConversion.setSelected(false);
 				}
 								
 				if (Shutter.lblFilter.isVisible())
@@ -10426,7 +10428,7 @@ public class Shutter {
 					{
 						hapRQuality.setEnabled(true);
 					}
-					else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+					else if (comboFilter.getSelectedItem().equals("HDR") || comboFilter.getSelectedItem().equals("HDR (GDeflate GPU)"))
 					{
 						hapHQuality.setEnabled(true);
 					}
@@ -10513,6 +10515,11 @@ public class Shutter {
 			
 		});
 
+		caseHapHApplyExrSRGBConversion = new JCheckBox(language.getProperty("caseHapHApplyExrSRGBConversion"));
+		caseHapHApplyExrSRGBConversion.setName("caseHapHApplyExrSRGBConversion");
+		caseHapHApplyExrSRGBConversion.setFont(new Font(freeSansFont, Font.PLAIN, 12));
+		caseHapHApplyExrSRGBConversion.setBounds(7, 16, caseHapHApplyExrSRGBConversion.getPreferredSize().width, 23);
+		
 		caseDRC = new JCheckBox(language.getProperty("caseDRC"));
 		caseDRC.setName("caseDRC");
 		caseDRC.setFont(new Font(freeSansFont, Font.PLAIN, 12));
@@ -12170,9 +12177,10 @@ public class Shutter {
 				hapRQuality.setSelectedIndex(0);
 				hapHQuality.setEnabled(false);
 				hapHQuality.setSelectedIndex(1);
-				caseHapHNormalizationFactor.setEnabled(false);
+				caseHapHNormalizationFactor.setSelected(false);
 				spinnerHapHNormalizationFactor.setEnabled(false);
 				spinnerHapHNormalizationFactor.setText("1.0");
+				caseHapHApplyExrSRGBConversion.setSelected(false);
 				caseDRC.setSelected(false);				
 				caseTruePeak.setSelected(false);
 				comboTruePeak.setEnabled(false);
@@ -13756,7 +13764,7 @@ public class Shutter {
 									hapRQuality.setSize(55, 17);
 									grpAdvanced.add(hapRQuality);
 								}
-								else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+								else if (comboFilter.getSelectedItem().equals("HDR") || comboFilter.getSelectedItem().equals("HDR (GDeflate GPU)"))
 								{
 									caseHapQuality.setLocation(7, casePreserveMetadata.getLocation().y + 17);
 									grpAdvanced.add(caseHapQuality);
@@ -13769,6 +13777,9 @@ public class Shutter {
 									spinnerHapHNormalizationFactor.setLocation(caseHapHNormalizationFactor.getX() + caseHapHNormalizationFactor.getWidth() + 3, caseHapHNormalizationFactor.getY() + 3);
 									// spinnerHapHNormalizationFactor.setSize(55, 17);
 									grpAdvanced.add(spinnerHapHNormalizationFactor);
+
+									caseHapHApplyExrSRGBConversion.setLocation(7, caseHapHNormalizationFactor.getLocation().y + 17);
+									grpAdvanced.add(caseHapHApplyExrSRGBConversion);
 								}
 							}
 							else
@@ -15521,7 +15532,7 @@ public class Shutter {
 				lblFilter.setIcon(new FlatSVGIcon("contents/arrow.svg", 30, 30));
 				
 				DefaultComboBoxModel<Object> model;
-				String types[] = { "Standard", "Alpha", "Q", "R", "H", "Standard (GDeflate GPU)", "Alpha (GDeflate GPU)", "Q (GDeflate GPU)", "R (GDeflate GPU)", "H (GDeflate GPU)" };// "Standard (Snappy GPU)", "Alpha (Snappy GPU)", "Q (Snappy GPU)", "R (Snappy GPU)" };
+				String types[] = { "Standard", "Alpha", "Q", "R", "HDR", "Standard (GDeflate GPU)", "Alpha (GDeflate GPU)", "Q (GDeflate GPU)", "R (GDeflate GPU)", "HDR (GDeflate GPU)" };// "Standard (Snappy GPU)", "Alpha (Snappy GPU)", "Q (Snappy GPU)", "R (Snappy GPU)" };
 				model = new DefaultComboBoxModel<Object>(types);
 				if (model.getElementAt(0).equals(comboFilter.getModel().getElementAt(0)) == false) {
 					comboFilter.setModel(model);

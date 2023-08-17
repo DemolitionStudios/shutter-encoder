@@ -127,7 +127,7 @@ public class Colorimetry extends Shutter {
 
 	public static String setInputCodec(String extension) {
 		
-		if (extension.toLowerCase().equals(".exr"))
+		if (extension.toLowerCase().equals(".exr") && caseHapHApplyExrSRGBConversion.isSelected())
 		{
 			return " -apply_trc iec61966_2_1";
 		}

@@ -1306,14 +1306,14 @@ public class VideoEncoders extends Shutter {
 					{
 						result += " -texture_quality_hap_r " + hapRQuality.getSelectedIndex(); 
 					}
-					else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+					else if (comboFilter.getSelectedItem().equals("HDR") || comboFilter.getSelectedItem().equals("HDR (GDeflate GPU)"))
 					{
 						result += " -texture_quality_hap_h " + hapHQuality.getSelectedIndex();
 					}
 				}
 				if (caseHapHNormalizationFactor.isSelected())
 				{
-					if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (GDeflate GPU)"))
+					if (comboFilter.getSelectedItem().equals("HDR") || comboFilter.getSelectedItem().equals("HDR (GDeflate GPU)"))
 					{
 						float normalizationFactor = (float) (Float.parseFloat(spinnerHapHNormalizationFactor.getText()));
 						result += " -hap_h_normalization_factor " + normalizationFactor;
@@ -1608,7 +1608,7 @@ public class VideoEncoders extends Shutter {
 				{
 					return " -format hap_r";
 				}
-				else if (comboFilter.getSelectedItem().equals("H") || comboFilter.getSelectedItem().equals("H (Snappy GPU)"))
+				else if (comboFilter.getSelectedItem().equals("HDR") || comboFilter.getSelectedItem().equals("HDR (Snappy GPU)"))
 				{
 					return " -format hap_h -threads 1";
 				}
